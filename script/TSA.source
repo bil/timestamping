@@ -1,0 +1,6 @@
+# time stamp authority (TSA) servers
+
+# GlobalSign, Sectigo, and Microsoft throw libressl errors on Mac
+
+TSA_names=(DigiCert IdenTrust GlobalSign Sectigo Microsoft Apple)
+TSA_urls=("http://timestamp.digicert.com" "http://timestamp.identrust.com" "http://timestamp.globalsign.com/tsa/r6advanced1" "https://timestamp.sectigo.com" "http://timestamp.acs.microsoft.com" "http://timestamp.apple.com/ts01")
