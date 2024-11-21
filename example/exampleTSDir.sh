@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # standalone example script performing trusted timestamping on a directory of data
-# requirements: openssl (3.0+), curl, bash (3+), sha256sum/shasum, find/cut/tee
+# requirements: openssl (3.0+), curl, jq, bash (3+), sha256sum/shasum, find/cut/tee
 
 # exit on error
 set -e
