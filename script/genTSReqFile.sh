@@ -17,6 +17,6 @@ else
 fi
 
 cd $FILE_DIR
-$CMD_SHA "$FILE_NAME" > $DIR_ORIGIN/$FILE_NAME.sha$DIGEST_SIZE.sum
+$CMD_SHA "$FILE_NAME" > $DIR_ORIGIN/$FILE_NAME.sha$DIGEST_SIZE
 
-openssl ts -query -data "$FILE_NAME" -sha$DIGEST_SIZE -cert -no_nonce -out $DIR_ORIGIN/timestampRequest.tsq
+openssl ts -query -data "$FILE_NAME" -sha$DIGEST_SIZE -cert -out $DIR_ORIGIN/timestampRequest.tsq
