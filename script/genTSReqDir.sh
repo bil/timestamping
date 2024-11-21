@@ -18,4 +18,4 @@ fi
 cd $DIR_DATA
 DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | tee $DIR_ORIGIN/${DIR_DATA}.sha${DIGEST_SIZE} | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 
-openssl ts -query -digest $DIGEST_DATA -sha$DIGEST_SIZE -cert -out $DIR_ORIGIN/timestampRequest.tsq
+openssl ts -query -digest $DIGEST_DATA -sha$DIGEST_SIZE -cert -out $DIR_ORIGIN/tsRequest_$DIR_DATA.tsq

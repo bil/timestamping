@@ -21,5 +21,5 @@ for TS_IDX in $(seq 0 $(($NUM_TS - 1)) ); do
     TSA=$(jq -r ".timestamps[$TS_IDX].authority" < $FILE_TS)
     TSR=$(jq -r ".timestamps[$TS_IDX].reply" < $FILE_TS)
 
-    base64 -d < <(echo $TSR) > timestampReply_$TSA.tsr
+    base64 -d < <(echo $TSR) > tsReply_$TSA.tsr
 done

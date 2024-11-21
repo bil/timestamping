@@ -11,12 +11,17 @@ DIR_DATA=rand_241109
 
 PATH=$PATH:../script
 
+# clearing any prior files
+rm -f rand*.sha*
+rm -f tsRe*.ts*
+rm -f timestamps*.json
+
 echo "Hashing data directory and generating timestamp request..."
 genTSReqDir.sh $DIR_DATA
 printf "Timestamp request generated.\n\n"
 
 echo "Sending timestamp request to timestamp authority servers and receiving reply..."
-stampReq.sh timestampRequest.tsq
+stampReq.sh tsRequest_$DIR_DATA.tsq
 printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
@@ -28,7 +33,7 @@ packTSjson.sh ./
 printf "Timestamps JSON built\n\n"
 
 echo "Deleting checksum and all timestamp reply files..."
-rm timestampReply*.tsr
+rm tsReply*.tsr
 rm $DIR_DATA.sha*
 printf "Deleted\n\n"
 

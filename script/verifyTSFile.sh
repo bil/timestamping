@@ -13,7 +13,7 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   echo "Verifying ${TSA_names[$TSA_idx]}:"
 
   openssl ts -verify -data $FILE_DATA \
-      -in timestampReply_${TSA_names[$TSA_idx]}.tsr \
+      -in tsReply_${TSA_names[$TSA_idx]}.tsr \
       -CApath $DIR_CA
 
 done

@@ -24,7 +24,7 @@ JSON=$(echo "$JSON" | jq ".version = \"$VERSION\"")
 JSON=$(echo "$JSON" | jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"hash\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} ")
 
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
-    JSON=$(echo "$JSON" | jq ".timestamps += [{ \"authority\" : \"${TSA_names[$TSA_idx]}\", \"url\" : \"${TSA_urls[$TSA_idx]}\", \"reply\" : \"$(base64 -w 0 < <(<$DIR_TS/timestampReply_${TSA_names[$TSA_idx]}.tsr) )\"}]" )
+    JSON=$(echo "$JSON" | jq ".timestamps += [{ \"authority\" : \"${TSA_names[$TSA_idx]}\", \"url\" : \"${TSA_urls[$TSA_idx]}\", \"reply\" : \"$(base64 -w 0 < <(<$DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr) )\"}]" )
 done
 
 echo $JSON > timestamps_$FILE_HASH.json
