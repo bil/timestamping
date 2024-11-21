@@ -22,3 +22,16 @@ printf "Timestamp replies received\n\n"
 echo "Verifying timestamp replies..."
 verifyTSDir.sh $DIR_DATA
 printf "Timestamps verified if all output reads: \"Verification: OK\"\n\n"
+
+echo "Building timestamps JSON..."
+packTSjson.sh ./
+printf "Timestamps JSON built\n\n"
+
+echo "Deleting checksum and all timestamp reply files..."
+rm timestampReply*.tsr
+rm $DIR_DATA.sha*
+printf "Deleted\n\n"
+
+echo "Unpacking JSON to restore checksum and all timestamp reply files..."
+unpackTSjson.sh timestamps_$DIR_DATA.json
+printf "Unpacked\n\n"

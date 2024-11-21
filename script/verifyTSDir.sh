@@ -26,6 +26,6 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   echo "Verifying ${TSA_names[$TSA_idx]}:"
 
   openssl ts -verify -digest $DIGEST_DATA \
-      -in timestampReply-${TSA_names[$TSA_idx]}.tsr \
+      -in timestampReply_${TSA_names[$TSA_idx]}.tsr \
       -CApath $FILE_CA
 done

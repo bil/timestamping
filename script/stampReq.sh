@@ -12,6 +12,6 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   curl -s -S ${TSA_urls[$TSA_idx]} \
     -H 'Content-Type: application/timestamp-query' \
     --data-binary @$FILE_REQ \
-    -o timestampReply-${TSA_names[$TSA_idx]}.tsr
+    -o timestampReply_${TSA_names[$TSA_idx]}.tsr
 
 done
