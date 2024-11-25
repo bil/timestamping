@@ -2,8 +2,8 @@
 
 set -u
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source $SCRIPT_DIR/TSA.source
+DIR_SCRIPT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source $DIR_SCRIPT/TSA.source
 
 FILE_REQ=$1
 

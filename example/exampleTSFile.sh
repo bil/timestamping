@@ -27,7 +27,7 @@ printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
 verifyTSFile.sh $FILE_DATA
-printf "Timestamps verified if all output reads: \"Verification: OK\"\n\n"
+printf "Verification complete, timestamps verified if all output reads: \"Verification: OK\"\n\n"
 
 echo "Building timestamps JSON..."
 packTSjson.sh ./
