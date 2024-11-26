@@ -19,4 +19,5 @@ fi
 cd $FILE_DIR
 $CMD_SHA "$FILE_NAME" > $DIR_ORIGIN/$FILE_NAME.sha$DIGEST_SIZE
 
-openssl ts -query -data "$FILE_NAME" -sha$DIGEST_SIZE -cert -out $DIR_ORIGIN/tsRequest_$FILE_NAME.tsq 2> >(grep -v "Using configuration from" >&2)
+openssl ts -query -data "$FILE_NAME" -sha$DIGEST_SIZE -cert \
+    -out $DIR_ORIGIN/tsRequest_$FILE_NAME.tsq 2> >(grep -v "Using configuration from" >&2)
