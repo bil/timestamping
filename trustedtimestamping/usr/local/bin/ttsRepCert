@@ -4,6 +4,7 @@ set -u
 set -e
 
 TSR=$1
+
 FILE_NAME=$(basename $TSR .tsr)
 
 openssl ts    -reply -in $TSR -token_out -out "$FILE_NAME".tk 2> >(grep -v "Using configuration from" >&2)

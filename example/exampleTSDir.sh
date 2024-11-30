@@ -9,34 +9,36 @@ set -e
 # specify file to timestamp
 DIR_DATA=rand_241109
 
-PATH=$PATH:../script
+PATH=$PATH:../trustedtimestamping/usr/local/bin
 
 # clearing any prior files
 rm -f rand*.sha*
 rm -f tsRe*.ts*
+rm -f tsCRL*.crl
 rm -f timestamps*.json
 
 echo "Hashing data directory and generating timestamp request..."
-genTSReqDir.sh $DIR_DATA
+ttsGenReqDir $DIR_DATA
 printf "Timestamp request generated.\n\n"
 
 echo "Sending timestamp request to timestamp authority servers and receiving reply..."
-stampReq.sh tsRequest_$DIR_DATA.tsq
+ttsStamp tsRequest_$DIR_DATA.tsq
 printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
-verifyTSDir.sh $DIR_DATA
+ttsVerifyDir $DIR_DATA
 printf "Timestamps verified if all output reads: \"Verification: OK\"\n\n"
 
 echo "Building timestamps JSON..."
-packTSjson.sh ./
+ttsPackJSON ./
 printf "Timestamps JSON built\n\n"
 
 echo "Deleting checksum and all timestamp reply files..."
 rm tsReply*.tsr
+rm tsCRL*.crl
 rm $DIR_DATA.sha*
 printf "Deleted\n\n"
 
 echo "Unpacking JSON to restore checksum and all timestamp reply files..."
-unpackTSjson.sh timestamps_$DIR_DATA.json
+ttsUnpackJSON timestamps_$DIR_DATA.json
 printf "Unpacked\n\n"

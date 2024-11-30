@@ -1,0 +1,34 @@
+# at the end of this script, the following env variables are set:
+# DIR_ROOT (root of package)
+# DIR_BIN (directory of tts binaries)
+# DIR_CONF (config directory)
+# FILE_TSA (path to TSA.source)
+
+DIR_CONF=/etc/trustedts
+FILE_ENV=$DIR_CONF/tts.source
+DIR_CONF_USER=~/.config/trustedts
+FILE_TSA_LOCAL=$DIR_CONF_USER/TSA.source
+
+if [ -f $FILE_ENV ]; then
+    DIR_ROOT=/
+else
+    # tts script called without package being installed
+    DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    DIR_ROOT=$(realpath $DIR_LOCAL_BIN/../../../trustedtimestamping)
+fi
+
+DIR_BIN=$DIR_ROOT/usr/local/bin
+DIR_CONF=$DIR_ROOT/etc/trustedts
+
+if [ -f $FILE_TSA_LOCAL ]; then
+    FILE_TSA=$FILE_TSA_LOCAL
+    DIR_CA=$DIR_CONF_USER/CA
+elif [ -f $FILE_ENV ]; then
+    FILE_TSA=$DIR_CONF/TSA.source
+    DIR_CA=$DIR_CONF/CA
+else
+    FILE_TSA=$DIR_ROOT/etc/trustedts/TSA.source
+    DIR_CA=$DIR_ROOT/etc/trustedts/CA
+fi
+
+source $FILE_TSA

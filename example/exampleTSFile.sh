@@ -10,34 +10,36 @@ set -e
 FILE_DATA=rand_241109/random1.dat
 FILE_DATA_NAME=$(basename $FILE_DATA)
 
-PATH=$PATH:../script
+PATH=$PATH:../trustedtimestamping/usr/local/bin
 
 # clearing any prior files
 rm -f rand*.sha*
 rm -f tsRe*.ts*
+rm -f tsCRL*.crl
 rm -f timestamps*.json
 
 echo "Hashing data file and generating timestamp request..."
-genTSReqFile.sh $FILE_DATA
+ttsGenReqFile $FILE_DATA
 printf "Timestamp request generated.\n\n"
 
 echo "Sending timestamp request to timestamp authority servers and receiving reply..."
-stampReq.sh tsRequest_$FILE_DATA_NAME.tsq
+ttsStamp tsRequest_$FILE_DATA_NAME.tsq
 printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
-verifyTSFile.sh $FILE_DATA
+ttsVerifyFile $FILE_DATA
 printf "Verification complete, timestamps verified if all output reads: \"Verification: OK\"\n\n"
 
 echo "Building timestamps JSON..."
-packTSjson.sh ./
+ttsPackJSON ./
 printf "Timestamps JSON built\n\n"
 
-echo "Deleting checksum and all timestamp reply files..."
-rm tsReply*.tsr
+echo "Deleting checksum and all timestamp reply and CRL files..."
 rm $FILE_DATA_NAME.sha*
+rm tsReply*.tsr
+rm tsCRL*.crl
 printf "Deleted\n\n"
 
 echo "Unpacking JSON to restore checksum and all timestamp reply files..."
-unpackTSjson.sh timestamps_$FILE_DATA_NAME.json
+ttsUnpackJSON timestamps_$FILE_DATA_NAME.json
 printf "Unpacked\n\n"

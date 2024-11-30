@@ -3,10 +3,12 @@
 set -e
 set -u
 
-DIR_ORIGIN=$(pwd)
+DIR_DATA_ABS=$(realpath $1)
+DIR_DATA=$(basename $DIR_DATA_ABS)
 
-DIR_DATA=$1
 DIGEST_SIZE=256
+
+DIR_ORIGIN=$(pwd)
 
 # check for Mac
 if [ "$(uname)" = "Darwin" ]; then
@@ -15,8 +17,9 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
-cd $DIR_DATA
+cd $DIR_DATA_ABS
 DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | tee $DIR_ORIGIN/${DIR_DATA}.sha${DIGEST_SIZE} | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 
+cd $DIR_ORIGIN
 openssl ts -query -digest $DIGEST_DATA -sha$DIGEST_SIZE -cert \
-    -out $DIR_ORIGIN/tsRequest_$DIR_DATA.tsq 2> >(grep -v "Using configuration from" >&2)
+    -out tsRequest_$DIR_DATA.tsq 2> >(grep -v "Using configuration from" >&2)

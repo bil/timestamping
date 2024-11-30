@@ -1,0 +1,9 @@
+# time stamp authority (TSA) servers
+
+# GlobalSign, Sectigo, and Microsoft throw libressl errors on Mac
+
+TSA_names=(DigiCert IdenTrust GlobalSign Sectigo Microsoft Apple)
+TSA_urls=("http://timestamp.digicert.com" "http://timestamp.identrust.com" "http://timestamp.globalsign.com/tsa/r6advanced1" "https://timestamp.sectigo.com" "http://timestamp.acs.microsoft.com" "http://timestamp.apple.com/ts01")
+
+TSA_CRL_names=(DigiCert DigiCert DigiCert IdenTrust IdenTrust GlobalSign GlobalSign Sectigo Sectigo Sectigo Apple Apple Microsoft Microsoft)
+TSA_CRL_urls=("http://crl3.digicert.com/DigiCertTrustedG4RSA4096SHA256TimeStampingCA.crl" "http://crl3.digicert.com/DigiCertTrustedRootG4.crl" "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl" "http://validation.identrust.com/crl/timestamping3.crl" "http://validation.identrust.com/crl/commercialrootca1.crl" "http://crl.globalsign.com/ca/gstsacasha384g4.crl" "http://crl.globalsign.com/root-r6.crl" "http://crl.sectigo.com/SectigoPublicTimeStampingCAR36.crl" "http://crl.sectigo.com/SectigoPublicTimeStampingRootR46.crl" "http://crl.usertrust.com/USERTrustRSACertificationAuthority.crl" "http://crl.apple.com/timestamp.crl" "http://crl.apple.com/root.crl" "http://www.microsoft.com/pkiops/crl/Microsoft%20Identity%20Verification%20Root%20Certificate%20Authority%202020.crl" "http://www.microsoft.com/pkiops/crl/Microsoft%20Public%20RSA%20Timestamping%20CA%202020.crl")

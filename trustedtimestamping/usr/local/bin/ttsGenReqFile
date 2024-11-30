@@ -2,11 +2,12 @@
 
 set -u
 
-PATH_DATA=$1
+PATH_DATA=$(realpath $1)
+
 DIGEST_SIZE=256
 
 DIR_ORIGIN=$(pwd)
-FILE_DIR=$(dirname $PATH_DATA)
+DIR_FILE=$(dirname $PATH_DATA)
 FILE_NAME=$(basename $PATH_DATA)
 
 # check for Mac
@@ -16,8 +17,9 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
-cd $FILE_DIR
+cd $DIR_FILE
 $CMD_SHA "$FILE_NAME" > $DIR_ORIGIN/$FILE_NAME.sha$DIGEST_SIZE
 
-openssl ts -query -data "$FILE_NAME" -sha$DIGEST_SIZE -cert \
-    -out $DIR_ORIGIN/tsRequest_$FILE_NAME.tsq 2> >(grep -v "Using configuration from" >&2)
+cd $DIR_ORIGIN
+openssl ts -query -data "$PATH_DATA" -sha$DIGEST_SIZE -cert \
+    -out tsRequest_$FILE_NAME.tsq 2> >(grep -v "Using configuration from" >&2)

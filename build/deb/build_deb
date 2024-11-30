@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# run from local directory
+
+set -e
+
+PKG=trustedtimestamping_0.0.1-1
+
+DIR_ROOT=../../trustedtimestamping
+TMP=$(mktemp -d)
+DIR_PKG=$TMP/$PKG
+
+mkdir -p $DIR_PKG
+cp -a $DIR_ROOT/* $DIR_PKG
+
+mkdir $DIR_PKG/DEBIAN
+cp control $DIR_PKG/DEBIAN
+
+dpkg-deb -b $DIR_PKG $PKG.deb
+rm -rf $TMP
