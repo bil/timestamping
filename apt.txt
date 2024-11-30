@@ -1,1 +1,4 @@
+coreutils
+curl
+git
 jq

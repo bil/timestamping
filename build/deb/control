@@ -3,6 +3,6 @@ Version: 0.0.1-1
 Section: base
 Priority: optional
 Architecture: all
-Depends: jq
+Depends: coreutils, curl, git, jq
 Maintainer: Paul Nuyujukian
 Description: Trusted timestamping scripts
