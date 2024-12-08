@@ -5,25 +5,25 @@
 set -e
 set -u
 
-FILE_TS=$1
+FILE_TS=$(<"$1")
 
-FILE_HASH_NAME=$(jq -r '.hashfile.filename' < $FILE_TS)
-FILE_HASH_DATA=$(jq -r '.hashfile.hash' < $FILE_TS)
+FILE_HASH_NAME=$(jq -r '.hashfile.filename' < <(printf '%s' "$FILE_TS"))
+FILE_HASH_DATA=$(jq -r '.hashfile.hash' < <(printf '%s' "$FILE_TS"))
 
 if [ -n "$FILE_HASH_NAME" ]; then
-    base64 -d < <(echo $FILE_HASH_DATA) > $FILE_HASH_NAME
+    base64 -d < <(printf $FILE_HASH_DATA) > $FILE_HASH_NAME
 fi
 
-NUM_TS=$(jq '.timestamps | length' < $FILE_TS)
+NUM_TS=$(jq '.timestamps | length' < <(printf '%s' "$FILE_TS"))
 
 for TS_IDX in $(seq 0 $(($NUM_TS - 1)) ); do
-    TSA=$(jq -r ".timestamps[$TS_IDX].authority" < $FILE_TS)
-    TSR=$(jq -r ".timestamps[$TS_IDX].reply" < $FILE_TS)
+    TSA=$(jq -r ".timestamps[$TS_IDX].authority" < <(printf '%s' "$FILE_TS"))
+    TSR=$(jq -r ".timestamps[$TS_IDX].reply" < <(printf '%s' "$FILE_TS"))
 
-    CRL_LEN=$(jq -r ".timestamps[$TS_IDX].crls | length" < $FILE_TS)
+    CRL_LEN=$(jq -r ".timestamps[$TS_IDX].crls | length" < <(printf '%s' "$FILE_TS"))
     for CRL_IDX in $(seq 0 $(($CRL_LEN -1)) ); do
-        base64 -d < <(jq -r ".timestamps[$TS_IDX].crls[$CRL_IDX]" < $FILE_TS) > tsCRL_$TSA$CRL_IDX.crl
+        base64 -d < <(jq -r ".timestamps[$TS_IDX].crls[$CRL_IDX]" < <(printf '%s' "$FILE_TS")) > tsCRL_$TSA$CRL_IDX.crl
     done
 
-    base64 -d < <(echo $TSR) > tsReply_$TSA.tsr
+    base64 -d < <(printf '%s' "$TSR") > tsReply_$TSA.tsr
 done

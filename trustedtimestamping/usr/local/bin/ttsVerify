@@ -30,7 +30,7 @@ fi
 cd $DIR_ORIGIN
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
 
-  echo "Verifying ${TSA_names[$TSA_idx]}:"
+  printf 'Verifying %s:\n' "${TSA_names[$TSA_idx]}"
 
   # make tmp directory for this tsr
   DIR_TMP=$(mktemp -d /tmp/tsVerify.XXXXXXX)
