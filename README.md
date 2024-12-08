@@ -6,4 +6,4 @@ This repository presents a framework for leveraging [trusted timestamping](https
 
 Choose `Terminal`, under the `Other` section and navigate to the example directory.
 
-From there, execute either `./exampleTSFile.sh` or `./exampleTSDir.sh`.
+From there, execute `./example.sh`.

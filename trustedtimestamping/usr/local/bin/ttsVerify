@@ -2,7 +2,7 @@
 
 set -u
 
-DIR_DATA=$1
+PATH_DATA=$1
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
@@ -17,8 +17,15 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
-cd $DIR_DATA
-DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+if [ -f "$PATH_DATA" ]; then
+    DIGEST_DATA=$($CMD_SHA $PATH_DATA | cut -c 1-$(($DIGEST_SIZE/4)) )
+elif [ -d "$PATH_DATA" ]; then
+    cd $PATH_DATA
+    DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+else
+    printf "Error: Path was not file nor directory\n"
+    exit 1
+fi
 
 cd $DIR_ORIGIN
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do

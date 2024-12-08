@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+set -u
+
+PATH_ABS=$(realpath $1)
+NAME_DATA=$(basename $PATH_ABS)
+DIR_DATA=$(dirname $PATH_ABS)
+DIR_ORIGIN=$(pwd)
+
+DIGEST_SIZE=256
+
+# check for Mac
+if [ "$(uname)" = "Darwin" ]; then
+    CMD_SHA="shasum -a $DIGEST_SIZE"
+else
+    CMD_SHA="sha${DIGEST_SIZE}sum"
+fi
+
+if [ -f "$PATH_ABS" ]; then
+    cd "$DIR_DATA"
+    DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE | cut -c 1-$(($DIGEST_SIZE/4)) )
+elif [ -d "$PATH_ABS" ]; then
+    cd $PATH_ABS
+    DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+else
+    printf "Error: Path was not file nor directory\n"
+    exit 1
+fi
+
+cd "$DIR_ORIGIN"
+openssl ts -query -digest $DIGEST_DATA -sha$DIGEST_SIZE -cert \
+    -out tsRequest_"$NAME_DATA".tsq 2> >(grep -v "Using configuration from" >&2)
