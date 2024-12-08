@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -u
+set -e
+
+DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
+
+DOI="$1"
+
+DOI_SUFFIX=$(basename $DOI)
+DOI_PREFIX=$(basename $(dirname $DOI))
+
+RA=$(curl -s -S https://doi.org/ra/$DOI_PREFIX | jq -r ".[0].RA")
+
+if [ "$RA" == "DataCite" ]; then
+    TS_JSON=$(curl -s https://api.datacite.org/dois/"$DOI_PREFIX"/"$DOI_SUFFIX" | jq '.data.attributes.descriptions[1].description | fromjson')
+    printf '%s' "$TS_JSON" > timestamps_"$DOI_PREFIX"-"$DOI_SUFFIX".json
+    $DIR_BIN/ttsUnpackJSON <(printf '%s' "$TS_JSON")
+fi
