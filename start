@@ -1,0 +1,1 @@
+export PATH=$PATH:$(pwd)/trustedtimestamping/usr/local/bin
