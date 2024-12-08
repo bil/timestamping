@@ -1,6 +1,8 @@
 import pathlib
 import tempfile
 import subprocess
+import json
+
 from fastapi import FastAPI
 
 DIGEST_SIZE=256
@@ -38,4 +40,4 @@ async def timestamp(h: str):
         subprocess.run(['ttsPackJSON', pathTMP], cwd = pathTMP, check = True)
 
         with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
-            return fj.read()
+            return json.load(fj)
