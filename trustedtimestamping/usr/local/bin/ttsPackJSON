@@ -20,6 +20,7 @@ FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST
 JSON=$(jq ".format = \"$FORMAT\"" <(printf '{}'))
 JSON=$(jq ".version = \"$VERSION\"" <(printf '%s' "$JSON"))
 
+JSON=$(jq ".name = \"$FILE_HASH\"" <(printf '%s' "$JSON"))
 JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"hash\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
 
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do

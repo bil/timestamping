@@ -8,8 +8,11 @@ set -e
 
 # specify example file to timestamp
 PATH_DATA=rand_241109/random1.dat
-# uncomment below to timestamp example directory
-# PATH_DATA=rand_241109
+
+if [ "$1" == 'DIR' ]; then
+    # timestamp directory contents
+    PATH_DATA=rand_241109
+fi
 
 PATH_DATA_NAME=$(basename $PATH_DATA)
 PATH=$PATH:../trustedtimestamping/usr/local/bin
