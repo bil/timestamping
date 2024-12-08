@@ -1,8 +1,9 @@
 # at the end of this script, the following env variables are set:
 # DIR_ROOT (root of package)
-# DIR_BIN (directory of tts binaries)
+# DIR_BIN  (directory of tts binaries)
 # DIR_CONF (config directory)
 # FILE_TSA (path to TSA.source)
+# DIR_CA   (root CA directory)
 
 DIR_CONF=/etc/trustedts
 FILE_ENV=$DIR_CONF/tts.source
