@@ -6,4 +6,4 @@ This repository presents a framework for leveraging [trusted timestamping](https
 
 Choose `Terminal`, under the `Other` section and navigate to the example directory.
 
-From there, execute `./example.sh`.
+From there, execute `./example.sh` to timestamp an example file and `./example.sh DIR` to timestamp an example directory and its contents.
