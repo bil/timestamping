@@ -1,13 +1,28 @@
+import os
 import pathlib
 import tempfile
 import subprocess
 import json
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from google.cloud import firestore
+
+cfs = firestore.Client(database=os.getenv('FIRESTORE_DB'))
+col_tts = cfs.collection("tts")
 
 DIGEST_SIZE=256
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get('/api/v1/timestamp')
 async def timestamp(h: str):
@@ -21,6 +36,11 @@ async def timestamp(h: str):
         int(h, 16)
     except:
         return "ERROR: invalid characters"
+
+    db_hash = col_tts.document(h)
+    db_hashSnap = db_hash.get()
+    if db_hashSnap.exists:
+        return db_hashSnap.data
 
     with tempfile.TemporaryDirectory() as tmpDirName:
 
@@ -40,4 +60,7 @@ async def timestamp(h: str):
         subprocess.run(['ttsPackJSON', pathTMP], cwd = pathTMP, check = True)
 
         with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
-            return json.load(fj)
+            ts_dict = json.load(fj)
+
+        db_hash.set(ts_dict)
+        return ts_dict

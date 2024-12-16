@@ -2,7 +2,7 @@ FROM brainilab/timestamping
 
 RUN apt-get -qq install python3-pip
 
-RUN pip install fastapi[standard] --break-system-package
+RUN pip install fastapi[standard] google-cloud-firestore --break-system-package
 
 COPY app /app/
 

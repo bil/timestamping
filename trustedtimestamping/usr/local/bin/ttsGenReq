@@ -17,12 +17,11 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
+cd "$DIR_DATA"
 if [ -f "$PATH_ABS" ]; then
-    cd "$DIR_DATA"
     DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE | cut -c 1-$(($DIGEST_SIZE/4)) )
 elif [ -d "$PATH_ABS" ]; then
-    cd $PATH_ABS
-    DIGEST_DATA=$(find ./ -type f -exec $CMD_SHA {} \; | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST_DATA=$(find "$NAME_DATA" -type f -printf '%h\0%d\0%p\n' | sort -t '\0' -n -f | awk -F '\0' '{print $3}' |xargs -n 1 $CMD_SHA | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 else
     printf "Error: Path was not file nor directory\n"
     exit 1
