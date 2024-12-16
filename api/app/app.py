@@ -40,7 +40,7 @@ async def timestamp(h: str):
     db_hash = col_tts.document(h)
     db_hashSnap = db_hash.get()
     if db_hashSnap.exists:
-        return db_hashSnap.data
+        return db_hashSnap.to_dict()
 
     with tempfile.TemporaryDirectory() as tmpDirName:
 
@@ -61,6 +61,10 @@ async def timestamp(h: str):
 
         with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
             ts_dict = json.load(fj)
+
+        ts_dict.pop('name', None)
+        ts_dict['hashfile'].pop('filename', None)
+        ts_dict['hashfile'].pop('contents', None)
 
         db_hash.set(ts_dict)
         return ts_dict

@@ -2,17 +2,18 @@
 
 set -u
 
-PATH_ABS=$(realpath $1)
-NAME_DATA=$(basename $PATH_ABS)
-DIR_DATA=$(dirname $PATH_ABS)
-DIR_ORIGIN=$(pwd)
-
+COMMIT_LAST=$(git log -1 --oneline --pretty=format:%s)
+if [ "$COMMIT_LAST" != "TIMESTAMP COMMIT" ]; then
+    printf "%s\n" "ERROR: This is not a timestamp commit."
+    exit 1
+fi
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
-DIR_ORIGIN=$(pwd)
+DIR_GIT=$(pwd)
 DIGEST_SIZE=256
+OBJFORMAT=$(git rev-parse --show-object-format)
 
 # check for Mac
 if [ "$(uname)" = "Darwin" ]; then
@@ -21,17 +22,16 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
-cd "$DIR_DATA"
-if [ -f "$PATH_ABS" ]; then
-    DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | cut -c 1-$(($DIGEST_SIZE/4)) )
-elif [ -d "$PATH_ABS" ]; then
-    DIGEST_DATA=$(find "$NAME_DATA" -type f -exec $CMD_SHA {} \; | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
-else
-    printf "Error: Path was not file nor directory\n"
-    exit 1
+if [ "$OBJFORMAT" = "sha1" ]; then
+    DIGEST=$(git log --skip 1 -1 --pretty=format:%H | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+elif [ "$OBJFORMAT" = "sha256" ]; then
+    DIGEST=$(git log --skip 1 -1 --pretty=format:%H)
 fi
 
-cd $DIR_ORIGIN
+DIR_UNPACK=$(mktemp -d /tmp/tsUnpack.XXXXXXX)
+cd $DIR_UNPACK
+ttsUnpackJSON $DIR_GIT/.timestamps.json
+
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
 
   printf 'Verifying %s:\n' "${TSA_names[$TSA_idx]}"
@@ -41,7 +41,7 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   cd $DIR_TMP
 
   # extract certificates from timestamp
-  $DIR_BIN/ttsRepCert $DIR_ORIGIN/tsReply_${TSA_names[$TSA_idx]}.tsr
+  $DIR_BIN/ttsRepCert $DIR_UNPACK/tsReply_${TSA_names[$TSA_idx]}.tsr
   # split cert chain pem into individual certificates
   csplit -s -f tsReply_${TSA_names[$TSA_idx]} -b %02d.pem tsReply_${TSA_names[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
   # delete empty file
@@ -54,11 +54,13 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   # copy over root CAs, overwriting links to any extracted CA root with these root certs
   cp -a $DIR_CA/* $DIR_TMP
 
-  cd $DIR_ORIGIN
-  openssl ts -verify -digest $DIGEST_DATA \
+  cd $DIR_UNPACK
+  openssl ts -verify -digest $DIGEST \
       -in tsReply_${TSA_names[$TSA_idx]}.tsr \
       -CApath $DIR_TMP 2> >(grep -v "Using configuration from" >&2)
 
   rm -rf $DIR_TMP
 
 done
+
+rm -rf $DIR_UNPACK

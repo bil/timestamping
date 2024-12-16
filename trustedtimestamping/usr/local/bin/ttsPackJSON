@@ -15,13 +15,18 @@ DIGEST_SIZE=256
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
-FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST_SIZE \;)
+# handle situation where hash/tsr was passed in manually and not from tsGenReq
+if compgen -G "$DIR_TS/*.sha$DIGEST_SIZE" > /dev/null; then
+    FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST_SIZE \;)
+fi
 
 JSON=$(jq ".format = \"$FORMAT\"" <(printf '{}'))
 JSON=$(jq ".version = \"$VERSION\"" <(printf '%s' "$JSON"))
 
-JSON=$(jq ".name = \"$FILE_HASH\"" <(printf '%s' "$JSON"))
-JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"contents\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
+if [ -v FILE_HASH ]; then
+    JSON=$(jq ".name = \"$FILE_HASH\"" <(printf '%s' "$JSON"))
+    JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"contents\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
+fi
 
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
 
@@ -37,4 +42,9 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
     JSON=$(jq ".timestamps += [{ \"authority\" : \"${TSA_names[$TSA_idx]}\", \"url\" : \"${TSA_urls[$TSA_idx]}\", \"reply\" : \"$STR_TSREP\", \"ca\" : \"$STR_CA\", \"crls\" : $CRL_JSON }]" <(printf '%s' "$JSON"))
 done
 
-printf '%s' "$JSON" > timestamps_$FILE_HASH.json
+if [ -v FILE_HASH ]; then
+    FILE_SUFFIX="_$FILE_HASH"
+else
+    FILE_SUFFIX=""
+fi
+printf '%s' "$JSON" > timestamps$FILE_SUFFIX.json

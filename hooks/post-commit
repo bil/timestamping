@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e
+
+COMMIT_LAST=$(git log -1 --oneline --pretty=format:%s)
+if [ "$COMMIT_LAST" == "TIMESTAMP COMMIT" ]; then
+    exit 0
+fi
+
+DIR_ORIGIN=$(pwd)
+DIR_TMP=$(mktemp -d /tmp/tsCommit.XXXXXXX)
+
+DIGEST_SIZE=256
+
+# check for Mac
+if [ "$(uname)" = "Darwin" ]; then
+    CMD_SHA="shasum -a $DIGEST_SIZE"
+else
+    CMD_SHA="sha${DIGEST_SIZE}sum"
+fi
+
+OBJFORMAT=$(git rev-parse --show-object-format)
+
+if [ "$OBJFORMAT" = "sha1" ]; then
+    DIGEST=$(git log -1 --pretty=format:%H | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+elif [ "$OBJFORMAT" = "sha256" ]; then
+    DIGEST=$(git log -1 --pretty=format:%H)
+fi
+
+cd $DIR_TMP
+
+openssl ts -query -digest $DIGEST -sha$DIGEST_SIZE -cert \
+    -out repo.tsq 2> >(grep -v "Using configuration from" >&2)
+
+ttsStamp repo.tsq
+ttsPackJSON ./
+
+cd $DIR_ORIGIN
+cp $DIR_TMP/timestamps.json ./.timestamps.json
+git add ./.timestamps.json
+git commit -m "TIMESTAMP COMMIT"
+
+rm -rf $DIR_TMP
