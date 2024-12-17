@@ -22,7 +22,7 @@ fi
 
 DIR_GIT=$(pwd)
 OBJFORMAT=$(git rev-parse --show-object-format)
-COMMIT_ID=$(git log -1 --pretty=format:%H)
+COMMIT_ID=$(git log --skip 1 -1 --pretty=format:%H)
 
 if [ "$OBJFORMAT" = "sha1" ]; then
     DIGEST=$(printf '%s' "$COMMIT_ID" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
