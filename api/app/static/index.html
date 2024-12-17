@@ -51,7 +51,7 @@
         var tenc = new TextEncoder();
         var checksumFileHash = await digestData(tenc.encode(hashStr));
       
-        return {hashStr: hashStr, digest: digest};
+        return {hashStr: hashStr, digest: checksumFileHash};
 
     }
 
@@ -67,8 +67,11 @@
         var fileData = await readFile(file);
         var digest = await digestData(fileData);
         var hashStr = digest.string + "  " + file.name + "\n";
+
+        var tenc = new TextEncoder();
+        var checksumFileHash = await digestData(tenc.encode(hashStr));
     
-        return {hashStr: hashStr, digest: digest};
+        return {hashStr: hashStr, digest: checksumFileHash};
     }
     
     function sendText(filename, text)
