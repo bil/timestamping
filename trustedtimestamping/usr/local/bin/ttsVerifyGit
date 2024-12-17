@@ -11,10 +11,6 @@ fi
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
-DIR_GIT=$(pwd)
-DIGEST_SIZE=256
-OBJFORMAT=$(git rev-parse --show-object-format)
-
 # check for Mac
 if [ "$(uname)" = "Darwin" ]; then
     CMD_SHA="shasum -a $DIGEST_SIZE"
@@ -22,10 +18,15 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
+DIR_GIT=$(pwd)
+DIGEST_SIZE=256
+OBJFORMAT=$(git rev-parse --show-object-format)
+COMMIT_ID=$(git log -1 --pretty=format:%H)
+
 if [ "$OBJFORMAT" = "sha1" ]; then
-    DIGEST=$(git log --skip 1 -1 --pretty=format:%H | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST=$(printf '%s' "$COMMIT_ID" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 elif [ "$OBJFORMAT" = "sha256" ]; then
-    DIGEST=$(git log --skip 1 -1 --pretty=format:%H)
+    DIGEST=$COMMIT_ID
 fi
 
 DIR_UNPACK=$(mktemp -d /tmp/tsUnpack.XXXXXXX)

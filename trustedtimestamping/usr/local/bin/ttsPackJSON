@@ -15,17 +15,30 @@ DIGEST_SIZE=256
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
-# handle situation where hash/tsr was passed in manually and not from tsGenReq
-if compgen -G "$DIR_TS/*.sha$DIGEST_SIZE" > /dev/null; then
-    FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST_SIZE \;)
-fi
-
 JSON=$(jq ".format = \"$FORMAT\"" <(printf '{}'))
 JSON=$(jq ".version = \"$VERSION\"" <(printf '%s' "$JSON"))
 
-if [ -v FILE_HASH ]; then
+# check if hash file of timestamp hash
+if [ -f $DIR_TS/sha$DIGEST_SIZE.hash ]; then
+    JSON=$(jq ".hash.hash = \"$(<$DIR_TS/sha$DIGEST_SIZE.hash)\"" <(printf '%s' "$JSON"))
+    JSON=$(jq ".hash.algorithm = \"SHA$DIGEST_SIZE\"" <(printf '%s' "$JSON"))
+fi
+
+# check if hashfile of checksum exists
+if compgen -G "$DIR_TS/*.sha$DIGEST_SIZE" > /dev/null; then
+    FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST_SIZE \;)
+
     JSON=$(jq ".name = \"$FILE_HASH\"" <(printf '%s' "$JSON"))
     JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"contents\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
+fi
+
+# check if git hash file exists
+if compgen -G "$DIR_TS/sha*.git" > /dev/null; then
+    OBJFORMAT=$(find $DIR_TS -name "sha*.git" -exec basename {} .git \;)
+    COMMIT_ID=$(<$OBJFORMAT.git)
+
+    JSON=$(jq ".git.commit = \"$COMMIT_ID\"" <(printf '%s' "$JSON"))
+    JSON=$(jq ".git.objformat = \"$OBJFORMAT\"" <(printf '%s' "$JSON"))
 fi
 
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do

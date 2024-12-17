@@ -5,24 +5,26 @@ import subprocess
 import json
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+#from fastapi.middleware.cors import CORSMiddleware
 
 from google.cloud import firestore
 
 cfs = firestore.Client(database=os.getenv('FIRESTORE_DB'))
 col_tts = cfs.collection("tts")
+col_new = cfs.collection("new")
 
 DIGEST_SIZE=256
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+#app.add_middleware(
+#    CORSMiddleware,
+#    allow_origins=["*"],
+#    allow_credentials=True,
+#    allow_methods=["*"],
+#    allow_headers=["*"],
+#)
 
 @app.get('/api/v1/timestamp')
 async def timestamp(h: str):
@@ -50,6 +52,10 @@ async def timestamp(h: str):
         # generate tsq
         subprocess.run(['openssl', 'ts', '-query', '-digest', h, f'-sha{DIGEST_SIZE}', '-cert', '-out', pathTSQ], cwd = pathTMP, check = True)
 
+        # save hash
+        with open(pathTMP / f'sha{DIGEST_SIZE}.hash', 'w') as f:
+            f.write(h)
+
         # stamp
         subprocess.run(['ttsStamp', pathTSQ], cwd = pathTMP, check = True)
 
@@ -67,4 +73,7 @@ async def timestamp(h: str):
         ts_dict['hashfile'].pop('contents', None)
 
         db_hash.set(ts_dict)
+        col_new.document(h).set({'exists' : True})
         return ts_dict
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")

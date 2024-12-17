@@ -20,14 +20,18 @@ else
 fi
 
 OBJFORMAT=$(git rev-parse --show-object-format)
+COMMIT_ID=$(git log -1 --pretty=format:%H)
 
 if [ "$OBJFORMAT" = "sha1" ]; then
-    DIGEST=$(git log -1 --pretty=format:%H | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST=$(printf '%s' "$COMMIT_ID" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 elif [ "$OBJFORMAT" = "sha256" ]; then
-    DIGEST=$(git log -1 --pretty=format:%H)
+    DIGEST=$COMMIT_ID
 fi
 
 cd $DIR_TMP
+
+printf '%s' "$COMMIT_ID" > $OBJFORMAT.git
+printf '%s' "$DIGEST" > sha$DIGEST_SIZE.hash
 
 openssl ts -query -digest $DIGEST -sha$DIGEST_SIZE -cert \
     -out repo.tsq 2> >(grep -v "Using configuration from" >&2)

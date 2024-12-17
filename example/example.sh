@@ -19,6 +19,7 @@ PATH=$PATH:../trustedtimestamping/usr/local/bin
 
 # clearing any prior files
 rm -f *.sha*
+rm -f *.hash
 rm -f tsRe*.ts*
 rm -f tsCRL*.crl
 rm -f timestamps*.json
@@ -41,6 +42,7 @@ printf "Timestamps JSON built\n\n"
 
 echo "Deleting checksum and all timestamp reply and CRL files..."
 rm *.sha*
+rm *.hash
 rm tsReply*.tsr
 rm tsCRL*.crl
 printf "Deleted\n\n"

@@ -1,0 +1,180 @@
+<html>
+<head>
+
+<script src="https://cdn.jsdelivr.net/npm/sort-paths@1.1.1/browser/sort-paths.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<script>
+
+    const API_PATH = "/api/v1/timestamp?h=";
+
+    // JavaScript
+
+    async function digestData(data)
+    {
+        const hash = await window.crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hash));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+        return {array: hashArray, string: hashHex};
+    }
+
+    async function readFile(file)
+    {
+        return new Promise((resolve, reject) =>
+        {
+            const reader = new FileReader();
+
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+
+            reader.readAsArrayBuffer(file); 
+        });
+    }
+
+    async function hashDirectory()
+    {
+        var hashStr = "";
+
+        var fileListArray = Array.from(this.files);
+        var filePaths = fileListArray.map(file => file.webkitRelativePath);
+        var sortedPaths = sortPaths(filePaths, "/");
+        var fileOrder = sortedPaths.map(name => filePaths.findIndex(i => i == name));
+      
+        for (let i = 0; i < fileListArray.length; i++)
+        {
+          var fileData = await readFile(fileListArray[fileOrder[i]]);
+          var digest = await digestData(fileData);
+      
+          hashStr += digest.string + "  " + fileListArray[fileOrder[i]].webkitRelativePath + "\n";
+        }
+      
+        var tenc = new TextEncoder();
+        var checksumFileHash = await digestData(tenc.encode(hashStr));
+      
+        return {hashStr: hashStr, digest: digest};
+
+    }
+
+    async function hashFile(files)
+    {
+        if (files > 1)
+        {
+            window.alert("Only one file can be selected. If multiple files are to be timestamped, either do one at a time or choose a directory timestamp.");
+            return;
+        }
+    
+        var file = files[0];
+        var fileData = await readFile(file);
+        var digest = await digestData(fileData);
+        var hashStr = digest.string + "  " + file.name + "\n";
+    
+        return {hashStr: hashStr, digest: digest};
+    }
+    
+    function sendText(filename, text)
+    {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+    
+        element.style.display = 'none';
+        document.body.appendChild(element);
+    
+        element.click();
+    
+        document.body.removeChild(element);
+    }
+    
+    async function timestampHandler()
+    {
+        files = this.files;
+        console.log(this.files);
+        if (files.length > 1)
+        {
+            var hash = await hashDirectory(this.files);
+            var choiceName = this.files[0].webkitRelativePath.split('/')[0];
+        }
+        else
+        {
+            var hash = await hashFile(this.files);
+            var choiceName = this.files[0].name;
+        }
+    
+        console.log(hash.digest.string);
+        var response = await fetch(API_PATH + hash.digest.string);
+        var tsJSON = await response.json();
+    
+        tsJSON.name = choiceName;
+        tsJSON.hashfile.filename = choiceName + ".sha256";
+        tsJSON.hashfile.contents = btoa(hash.hashStr);
+    
+        console.log(tsJSON);
+    
+        sendText("timestamps_" + choiceName + ".json", JSON.stringify(tsJSON));
+    
+    }
+  
+</script>
+
+<style>
+    /* CSS */
+
+    input[type="file"]
+    {
+        display: none;
+    }
+    
+    .colorful-button
+    {
+        color: white;
+        background-color: #8C1515;
+        margin: 1rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        cursor: pointer;
+        font-size: 1.25em;
+    }
+    
+    h1
+    {
+        font-size: 3em;
+    }
+
+</style>
+
+</head>
+
+<body>
+
+    <div align="center">
+
+        <h1>Trusted Timestamping</h1>
+
+        <br><br>
+
+        <label for="pickFile" class="colorful-button"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-file"></i> Timestamp File</label>
+        <input id="pickFile" type="file" />
+
+        <label for="pickDir" class="colorful-button"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
+        <input id="pickDir" type="file" webkitdirectory />
+
+        <br><br><br><br>
+
+        <p>For more details and source code, see <a href="http://github.com/bil/timestamping">github.com/bil/timestamping</a></p>
+
+    </div>
+
+
+</body>
+
+<script>
+
+    const pickFile = document.getElementById("pickFile");
+    const pickDir  = document.getElementById("pickDir");
+
+    pickFile.addEventListener("change", timestampHandler, false);
+    pickDir.addEventListener( "change", timestampHandler, false);
+
+</script>
+
+</html>

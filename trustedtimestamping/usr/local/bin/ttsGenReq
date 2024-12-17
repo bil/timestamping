@@ -28,5 +28,6 @@ else
 fi
 
 cd "$DIR_ORIGIN"
+printf "%s" "$DIGEST_DATA" > sha$DIGEST_SIZE.hash
 openssl ts -query -digest $DIGEST_DATA -sha$DIGEST_SIZE -cert \
     -out tsRequest_"$NAME_DATA".tsq 2> >(grep -v "Using configuration from" >&2)
