@@ -23,7 +23,7 @@ fi
 
 cd "$DIR_DATA"
 if [ -f "$PATH_ABS" ]; then
-    DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 elif [ -d "$PATH_ABS" ]; then
     DIGEST_DATA=$(find "$NAME_DATA" -type f -exec $CMD_SHA {} \; | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 else
