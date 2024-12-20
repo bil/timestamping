@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 
-COMMIT_LAST=$(git log -1 --oneline --pretty=format:%s)
-if [ "$COMMIT_LAST" == "TIMESTAMP COMMIT" ]; then
+# prevent infinite loop
+COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
+if [ "$COMMIT_LAST_MSG" == "TIMESTAMP COMMIT" ]; then
     exit 0
 fi
 

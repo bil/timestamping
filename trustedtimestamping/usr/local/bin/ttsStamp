@@ -12,15 +12,17 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   curl -s -S ${TSA_urls[$TSA_idx]} \
     -H 'Content-Type: application/timestamp-query' \
     --data-binary @$FILE_REQ \
-    -o tsReply_${TSA_names[$TSA_idx]}.tsr
+    -o tsReply_${TSA_names[$TSA_idx]}.tsr &
 
   CRL_idx=0
   for TSA_CRL_idx in $(seq 0 $((${#TSA_CRL_names[@]}-1)) ); do
       if [[ ${TSA_names[$TSA_idx]} == ${TSA_CRL_names[$TSA_CRL_idx]} ]]; then
         curl -s -S ${TSA_CRL_urls[$TSA_CRL_idx]} \
-          -o tsCRL_${TSA_CRL_names[$TSA_CRL_idx]}$CRL_idx.crl
+          -o tsCRL_${TSA_CRL_names[$TSA_CRL_idx]}$CRL_idx.crl &
         CRL_idx=$(($CRL_idx + 1))
       fi
   done
 
 done
+
+wait
