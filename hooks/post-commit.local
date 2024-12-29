@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# timestamp using locally installed trustedtimestamp package
+
+set -e
+
+# prevent infinite loop
+COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
+if [ "$COMMIT_LAST_MSG" == "TIMESTAMP COMMIT" ]; then
+    exit 0
+fi
+
+DIR_ORIGIN=$(pwd)
+DIR_TMP=$(mktemp -d /tmp/tsCommit.XXXXXXX)
+
+DIGEST_SIZE=256
+
+# check for Mac
+if [ "$(uname)" = "Darwin" ]; then
+    CMD_SHA="shasum -a $DIGEST_SIZE"
+else
+    CMD_SHA="sha${DIGEST_SIZE}sum"
+fi
+
+OBJFORMAT=$(git rev-parse --show-object-format)
+COMMIT_ID=$(git log -1 --pretty=format:%H)
+
+if [ "$OBJFORMAT" = "sha1" ]; then
+    DIGEST=$(printf '%s' "$COMMIT_ID" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+elif [ "$OBJFORMAT" = "sha256" ]; then
+    DIGEST=$COMMIT_ID
+fi
+
+cd $DIR_TMP
+
+printf '%s' "$COMMIT_ID" > $OBJFORMAT.git
+printf '%s' "$DIGEST" > sha$DIGEST_SIZE.hash
+
+openssl ts -query -digest $DIGEST -sha$DIGEST_SIZE -cert \
+    -out repo.tsq 2> >(grep -v "Using configuration from" >&2)
+
+ttsStamp repo.tsq
+ttsPackJSON ./
+
+cd $DIR_ORIGIN
+cp $DIR_TMP/timestamps.json ./.timestamps.json
+git add ./.timestamps.json
+git commit -m "TIMESTAMP COMMIT"
+
+rm -rf $DIR_TMP

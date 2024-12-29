@@ -1,6 +1,11 @@
 #!/bin/bash
 
+# timestamp using web API
+
 set -e
+
+API_URL=timestamp.stanford.edu
+API_PATH=api/v1/timestamp
 
 # prevent infinite loop
 COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
@@ -34,11 +39,7 @@ cd $DIR_TMP
 printf '%s' "$COMMIT_ID" > $OBJFORMAT.git
 printf '%s' "$DIGEST" > sha$DIGEST_SIZE.hash
 
-openssl ts -query -digest $DIGEST -sha$DIGEST_SIZE -cert \
-    -out repo.tsq 2> >(grep -v "Using configuration from" >&2)
-
-ttsStamp repo.tsq
-ttsPackJSON ./
+curl -sS -G -d "h=$DIGEST" https://$API_URL/$API_PATH > timestamps.json
 
 cd $DIR_ORIGIN
 cp $DIR_TMP/timestamps.json ./.timestamps.json

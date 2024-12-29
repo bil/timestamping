@@ -71,6 +71,7 @@ async def timestamp(h: str):
         ts_dict.pop('name', None)
         ts_dict['hashfile'].pop('filename', None)
         ts_dict['hashfile'].pop('contents', None)
+        ts_dict['hashfile'].pop('algorithm', None)
 
         db_hash.set(ts_dict)
         col_new.document(h).set({'exists' : True})
