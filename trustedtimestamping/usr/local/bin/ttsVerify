@@ -23,13 +23,15 @@ fi
 
 cd "$DIR_DATA"
 if [ -f "$PATH_ABS" ]; then
-    DIGEST_DATA=$($CMD_SHA "$NAME_DATA" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST_FILE=$($CMD_SHA "$NAME_DATA")
 elif [ -d "$PATH_ABS" ]; then
-    DIGEST_DATA=$(find "$NAME_DATA" -type f -exec $CMD_SHA {} \; | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    DIGEST_FILE="$(find "$NAME_DATA" -type f -printf '%h\0%d\0%p\n' | sort -t '\0' -n -f | awk -F '\0' '{print $3}' | xargs -n 1 $CMD_SHA)"
 else
     printf "Error: Path was not file nor directory\n"
     exit 1
 fi
+
+DIGEST_DATA=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 
 cd $DIR_ORIGIN
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
