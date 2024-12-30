@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# mybinder.org start file
+
 export PATH=$PATH:$(pwd)/trustedtimestamping/usr/local/bin
 
 exec "$@"

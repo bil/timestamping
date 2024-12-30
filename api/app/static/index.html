@@ -88,10 +88,9 @@
         document.body.removeChild(element);
     }
     
-    async function timestampHandler()
+    async function timestampFileHandler()
     {
         files = this.files;
-        console.log(this.files);
         if (files.length > 1)
         {
             var hash = await hashDirectory(this.files);
@@ -103,15 +102,12 @@
             var choiceName = this.files[0].name;
         }
     
-        console.log(hash.digest.string);
         var response = await fetch(API_PATH + hash.digest.string);
         var tsJSON = await response.json();
     
         tsJSON.name = choiceName;
         tsJSON.hashfile.filename = choiceName + ".sha256";
         tsJSON.hashfile.contents = btoa(hash.hashStr);
-    
-        console.log(tsJSON);
     
         sendText("timestamps_" + choiceName + ".json", JSON.stringify(tsJSON));
     
@@ -175,8 +171,8 @@
     const pickFile = document.getElementById("pickFile");
     const pickDir  = document.getElementById("pickDir");
 
-    pickFile.addEventListener("change", timestampHandler, false);
-    pickDir.addEventListener( "change", timestampHandler, false);
+    pickFile.addEventListener("change", timestampFileHandler, false);
+    pickDir.addEventListener( "change", timestampFileHandler, false);
 
 </script>
 
