@@ -1,17 +1,20 @@
 #!/bin/bash
 
+# verifies a timestamps json file against the candiate originating file/directory
+# inputs: <path to candidate file/directory> <path to timestamp replies (.tsr)>
+# output: stdout responses from openssl verify
+
 set -u
 
 PATH_ABS=$(realpath $1)
 NAME_DATA=$(basename $PATH_ABS)
 DIR_DATA=$(dirname $PATH_ABS)
-DIR_ORIGIN=$(pwd)
+DIR_TS=$(realpath $2)
 
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
-DIR_ORIGIN=$(pwd)
 DIGEST_SIZE=256
 
 # check for Mac
@@ -33,7 +36,6 @@ fi
 
 DIGEST_DATA=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 
-cd $DIR_ORIGIN
 for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
 
   printf 'Verifying %s:\n' "${TSA_names[$TSA_idx]}"
@@ -43,7 +45,7 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   cd $DIR_TMP
 
   # extract certificates from timestamp
-  $DIR_BIN/ttsRepCert $DIR_ORIGIN/tsReply_${TSA_names[$TSA_idx]}.tsr
+  $DIR_BIN/ttsRepCert $DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr
   # split cert chain pem into individual certificates
   csplit -s -f tsReply_${TSA_names[$TSA_idx]} -b %02d.pem tsReply_${TSA_names[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
   # delete empty file
@@ -56,9 +58,8 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
   # copy over root CAs, overwriting links to any extracted CA root with these root certs
   cp -a $DIR_CA/* $DIR_TMP
 
-  cd $DIR_ORIGIN
   openssl ts -verify -digest $DIGEST_DATA \
-      -in tsReply_${TSA_names[$TSA_idx]}.tsr \
+      -in $DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr \
       -CApath $DIR_TMP 2> >(grep -v "Using configuration from" >&2)
 
   rm -rf $DIR_TMP

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# verify timestamps of a git repository
+# must be executed from base of git repository where .timestamps.json file resides
+
 set -u
 
 COMMIT_LAST=$(git log -1 --oneline --pretty=format:%s)

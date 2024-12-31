@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# extract certificate chain from a timestamp reply
+# input argument: path to .tsr file
+# output: certificate chain of pem files to working directory
+
 set -u
 set -e
 

@@ -1,6 +1,10 @@
 # Trusted Timestamping for Scientific Research Data
 
-This repository presents a framework for leveraging [trusted timestamping](https://en.wikipedia.org/wiki/Trusted_timestamping) as defined in [RFC 3161](https://www.ietf.org/rfc/rfc3161.txt) in a manner suitable for providing data integrity assurances for scientific research data (or arbitrary files/data).
+This repository presents a [open source](https://en.wikipedia.org/wiki/Open_source) framework for leveraging [trusted timestamping](https://en.wikipedia.org/wiki/Trusted_timestamping) as defined in [RFC 3161](https://www.ietf.org/rfc/rfc3161.txt) in a manner suitable for providing data integrity assurances for scientific research data (or arbitrary files/data).
+
+This frameworks permits a cryptographically secure way to prove that a specific version of a file (or directory of files) existed at the time of timestamping.
+This can be helpful in demonstrating that a specific piece of scientific data has not been altered since the timestamp (e.g., shortly after acquisition/creation).
+It can also be used to maintain an [electronic lab notebook](https://en.wikipedia.org/wiki/Electronic_lab_notebook) via timestamped git repositories.
 
 ## Timestamping Website: [timestamp.stanford.edu](https://timestamp.stanford.edu)
 
@@ -15,9 +19,11 @@ Note, in-browser hashing means that very large data files will take time to proc
 At the moment, there is a max individual file size constraint due to non-chunked reads (to be fixed).
 Max individual file sizes vary depending on the browser, but are around 2-4GB.
 
-Hashes and their respective timestamps submitted to the API are stored and made public on a daily basis at [timestamp-record](https://github.com/bil/timestamp-record).
+Hashes submitted to the API and their respective timestamps are stored and made public on a daily basis at [timestamp-record](https://github.com/bil/timestamp-record).
 
 ## Binder Demo [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bil/timestamping/HEAD)
+
+A demo of the command-line tools is available via Binder.
 
 Choose `Terminal`, under the `Other` section and navigate to the example directory.
 
@@ -25,16 +31,18 @@ From there, execute `./example.sh` to timestamp an example file and `./example.s
 
 ## Timestamping git Repositories
 
-The `post-commit` file in the `hooks` directory supports the addition of trusted timestamps to any git repository with this timestamping installed.
+The `post-commit` files in the `hooks` directory support the timestamping of git repositories.
+The `post-commit.local` file performs timestamping locally, and requires the trustedtimestamping scripts to be installed/available on the local system.
+The `post-commit.api` file performs timstamping via the API.
 
-To use, copy the `post-commit` file to the `.git/hooks` directory of a given repository and commit as normal.
+To use, copy the desired `post-commit` file to the `.git/hooks` directory of a given repository, ensuring it is named `post-commit`, and commit as normal.
 
 Every manual commit will be followed by an automatic timestamp commit against the checksum of the repository HEAD.
 A `.timestamps.json` file will be added to the root of the git repository.
 
 Repository timestamps can validated by running `ttsVerifyGit` against any checked out timestamp commit revision.
 
-Revisions to this repository are timestamped in this manner as an example and to validate the temporal history of the repository as of commit ID `395bc18` on Dec 16, 2024.
+Revisions to this repository are timestamped in this manner as an example and to validate the temporal history of the repository.
 
 This framework permits a temporally-verifiable record of a git repository, suitable for an electornic lab notebook or other authoritative archive.
 When a common repository is used by multiple individuals (and optionally coupled with [signed commits](https://git-scm.com/book/ms/v2/Git-Tools-Signing-Your-Work)), a cryptographically secure and unique record can be defended so long as at least one of the contributing individuals is truthful (up to the truthful individual's last commit, at least).
@@ -69,33 +77,38 @@ The reason for this is still being investigated.
 
 ## Local Configuration
 
-The shell scripts permit local configuration of TSA servers besides the default ones mentioned above.
+The scripts permit local configuration of TSA servers besides the default ones mentioned above.
 
 A custom `TSA.source` and `CA` directory can be placed in `~/.config/trustedts` and will take priority over the defaults.
 See the structure of `trustedtimestamping/etc/trustedts` for the file structure to be replicated.
 
 ## JSON Timestamps File Format
 
-The field structure of the timestamps JSON file is mostly self-explanatory. See the `.timestamps.json` as an example for a git-specific timestamp format.
+The field structure of the timestamps JSON file is mostly self-explanatory.
+See the `.timestamps.json` as an example for a git-specific timestamp format.
 
-The `format`, `version`, and `timestamps` fields are required. All others are optional.
+The `format`, `version`, and `timestamps` fields are required.
+All others are optional.
 
-A hash field is optionally included for convenience of identifiability. A time field was specifically omitted and must be derived from the timestamp replies.
+A hash field is optionally included for convenience of identifiability.
+A time field was specifically omitted and must be derived from the timestamp replies.
 
 ### File Timestamps
 
 File timestamps are derived by calculating the SHA256 hash of the file, generating the respective `sha256sum` compliant string, calculating the SHA256 hash of this string, and using this second hash as the digest for the timestamp request.
 This is done to 1) make immutable both the file's contents *and* its name and 2) maintain compatibility with the coreutils package.
-The format of this string is: `<32 byte hash in lowercase><two spaces><file name><line feed character (\n)>`.
+The format of this string is: `<32 byte SHA256 hash in lowercase><two spaces><file name><line feed character (\n)>`.
 
 ### Directory Timestamps
 
-Directory timestamps are generated in an identical fashion to file timestamps, except the `shas256sum` compliant string contains multiple lines, one for each file. The order of these lines is important, and is sorted by file name alphabetically, shallow to deep.
+Directory timestamps are generated in an identical fashion to file timestamps, except the `shas256sum` compliant string contains multiple lines, one for each file (including relative path).
+At the moment, the hash calculation is sensitive to the ordering of these lines, and is sorted by file name alphabetically, shallow to deep.
 
 ### Git Repository Timestamps
 
-Git repositories are timestamped based on their commit id.
+Git repositories are timestamped based on their commit ID.
 The default hash format for a git repository is SHA1, which is then passed through SHA256.
-While recent versions of git support SHA256, most git repository servers do not have support for repositories with SHA256 object formats.
+While recent versions of git support SHA256, most git repository servers (e.g., GitHub, GitLab, etc) do not have support for repositories with SHA256 object formats.
 
-SHA1 is not as secure as SHA256, however, this is practically still safe since each commit will have its own timestamp, making the feasibility for a collision that replicates all those hashes difficult.
+SHA1 is not as secure as SHA256.
+However, this is practically still safe since each commit will have its own timestamp, making the feasibility for a collision that replicates mutliple hashes across many commits difficult.

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# generate timestamp request
+# input argument: path to file or directory to be timestamped
+# outputs a tsRequest_<name>.tsq file in the working directory
+
 set -e
 set -u
 

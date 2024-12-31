@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# requirements: jq, base64
+# assembles timestamps json file
+# input: path containing timetstamp replies (.tsr)
+# outputs a timestamps<name>.json file in the working directory
 
 set -e
 set -u

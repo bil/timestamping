@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# standalone example script performing trusted timestamping on a single data file
-# requirements: openssl (3.0+), curl, jq, bash (3+), coreutils
+# standalone example script performing trusted timestamping on a data file (or directory)
+# ./example.sh       to timestamp a single file
+# ./example.sh DIR   to timestamp a directory
 
 # exit on error
 set -e
@@ -33,7 +34,7 @@ ttsStamp tsRequest_$PATH_DATA_NAME.tsq
 printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
-ttsVerify $PATH_DATA
+ttsVerify $PATH_DATA ./
 printf "Verification complete, timestamps verified if all output reads: \"Verification: OK\"\n\n"
 
 echo "Building timestamps JSON..."

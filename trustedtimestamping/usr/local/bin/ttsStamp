@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# stamp timestamp request against timestamp authority servers
+# input: path to timestamp request file (.tsq in this framework, but not sensitive to file extension)
+# output: a set of timestamp reply files (.tsr), one for every defined timestamp authority server, output working directory
+
 set -u
 
 FILE_REQ=$1

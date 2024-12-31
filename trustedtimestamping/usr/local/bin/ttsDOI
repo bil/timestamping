@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# extract timestamp json from DOI
+# currently only supports DataCite DOIs
+# DataCite DOIs: pull timestamp JSON from TechnicalInfo Description Field
+
 set -u
 set -e
 
@@ -10,11 +14,13 @@ DOI="$1"
 
 DOI_SUFFIX=$(basename $DOI)
 DOI_PREFIX=$(basename $(dirname $DOI))
+TS_FILE_NAME=timestamps_"$DOI_PREFIX"-"$DOI_SUFFIX".json
 
 RA=$(curl -s -S https://doi.org/ra/$DOI_PREFIX | jq -r ".[0].RA")
 
 if [ "$RA" == "DataCite" ]; then
-    TS_JSON=$(curl -s https://api.datacite.org/dois/"$DOI_PREFIX"/"$DOI_SUFFIX" | jq '.data.attributes.descriptions[1].description | fromjson')
-    printf '%s' "$TS_JSON" > timestamps_"$DOI_PREFIX"-"$DOI_SUFFIX".json
-    $DIR_BIN/ttsUnpackJSON <(printf '%s' "$TS_JSON")
+    TS_JSON_DESC=$(curl -s https://api.datacite.org/dois/"$DOI_PREFIX"/"$DOI_SUFFIX" | jq '.data.attributes.descriptions')
+    TECHINFO_IDX=$(printf "%s" "$TS_JSON_DESC" | jq '[.[] | .descriptionType] | index("TechnicalInfo")')
+    printf '%s' "$TS_JSON_DESC" | jq -r --argjson idx "$TECHINFO_IDX" '.[$idx].description' > $TS_FILE_NAME
+    $DIR_BIN/ttsUnpackJSON $TS_FILE_NAME
 fi
