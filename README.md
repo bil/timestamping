@@ -15,7 +15,7 @@ Note, in-browser hashing means that very large data files will take time to proc
 At the moment, there is a max individual file size constraint due to non-chunked reads (to be fixed).
 Max individual file sizes vary depending on the browser, but are around 2-4GB.
 
-Hashes and their respective timestamps are stored and made public on a daily basis at `PENDING`.
+Hashes and their respective timestamps submitted to the API are stored and made public on a daily basis at [timestamp-record](https://github.com/bil/timestamp-record).
 
 ## Binder Demo [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/bil/timestamping/HEAD)
 
