@@ -26,7 +26,7 @@ app = FastAPI()
 #    allow_headers=["*"],
 #)
 
-@app.get('/api/v1/timestamp')
+@app.get('/api/v0.0.2/timestamp')
 async def timestamp(h: str):
 
     # valdiate hash length
@@ -42,7 +42,7 @@ async def timestamp(h: str):
     db_hash = col_tts.document(h)
     db_hashSnap = db_hash.get()
     if db_hashSnap.exists:
-        return db_hashSnap.to_dict()
+        return {'newTimestamp' : False, 'timestamps' : db_hashSnap.to_dict()}
 
     with tempfile.TemporaryDirectory() as tmpDirName:
 
@@ -53,7 +53,7 @@ async def timestamp(h: str):
         subprocess.run(['openssl', 'ts', '-query', '-digest', h, f'-sha{DIGEST_SIZE}', '-cert', '-out', pathTSQ], cwd = pathTMP, check = True)
 
         # save hash
-        with open(pathTMP / f'sha{DIGEST_SIZE}.hash', 'w') as f:
+        with open(pathTMP / f'sha{DIGEST_SIZE}.digest', 'w') as f:
             f.write(h)
 
         # stamp
@@ -75,6 +75,6 @@ async def timestamp(h: str):
 
         db_hash.set(ts_dict)
         col_new.document(h).set({'exists' : True})
-        return ts_dict
+        return {'newTimestamp' : True, 'timestamps' : ts_dict}
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

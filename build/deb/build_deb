@@ -5,7 +5,7 @@ set -e
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $DIR_LOCAL_BIN
 
-PKG=trustedtimestamping_0.0.1-1
+PKG=trustedtimestamping_0.0.2-1
 
 DIR_ROOT=../../trustedtimestamping
 TMP=$(mktemp -d)

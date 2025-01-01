@@ -10,7 +10,7 @@ set -u
 DIR_TS=$1
 
 FORMAT="TIMESTAMPS_TRUSTED"
-VERSION=0.0.1
+VERSION=0.0.2
 
 DIGEST_SIZE=256
 
@@ -21,8 +21,8 @@ JSON=$(jq ".format = \"$FORMAT\"" <(printf '{}'))
 JSON=$(jq ".version = \"$VERSION\"" <(printf '%s' "$JSON"))
 
 # check if hash file of timestamp hash
-if [ -f $DIR_TS/sha$DIGEST_SIZE.hash ]; then
-    JSON=$(jq ".hash.hash = \"$(<$DIR_TS/sha$DIGEST_SIZE.hash)\"" <(printf '%s' "$JSON"))
+if [ -f $DIR_TS/sha$DIGEST_SIZE.digest ]; then
+    JSON=$(jq ".hash.digest = \"$(<$DIR_TS/sha$DIGEST_SIZE.digest)\"" <(printf '%s' "$JSON"))
     JSON=$(jq ".hash.algorithm = \"SHA$DIGEST_SIZE\"" <(printf '%s' "$JSON"))
 fi
 

@@ -1,12 +1,11 @@
 <html>
 <head>
 
-<script src="https://cdn.jsdelivr.net/npm/sort-paths@1.1.1/browser/sort-paths.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 <script>
 
-    const API_PATH = "/api/v1/timestamp?h=";
+    const API_PATH = "/api/v0.0.2/timestamp?h=";
 
     // JavaScript
 
@@ -31,52 +30,68 @@
         });
     }
 
-    async function hashDirectory()
+    async function calculateFileHashes(fileList)
     {
-        var hashStr = "";
+        let hashStr = "";
+        let fileHashes = [];
 
-        var fileListArray = Array.from(this.files);
-        var filePaths = fileListArray.map(file => file.webkitRelativePath);
-        var sortedPaths = sortPaths(filePaths, "/");
-        var fileOrder = sortedPaths.map(name => filePaths.findIndex(i => i == name));
-      
-        for (let i = 0; i < fileListArray.length; i++)
+        for (let i = 0; i < fileList.length; i++)
         {
-          var fileData = await readFile(fileListArray[fileOrder[i]]);
-          var digest = await digestData(fileData);
-      
-          hashStr += digest.string + "  " + fileListArray[fileOrder[i]].webkitRelativePath + "\n";
+            const fileI = fileList[i];
+            if (fileI.hasOwnProperty('webkitRelativePath'))
+            {
+                var fileName = fileI.webkitRelativePath;
+            }
+            else
+            {
+                var fileName = fileI.name;
+            }
+
+            const fileData   = await readFile(fileI);
+            const fileDigest = await digestData(fileData);
+
+            fileHashes.push({'hash' : fileDigest, 'name' : fileName});
+        }
+
+        // sort by digest
+        fileHashes.sort((a, b) => a.hash.string.localeCompare(b.hash.string));
+
+        // assemble checksum file string
+        for (let i = 0; i < fileHashes.length; i++)
+        { 
+            hashStr += fileHashes[i].hash.string + "  " + fileHashes[i].name + "\n";
         }
       
-        var tenc = new TextEncoder();
-        var checksumFileHash = await digestData(tenc.encode(hashStr));
-      
-        return {hashStr: hashStr, digest: checksumFileHash};
+        const tenc = new TextEncoder();
+        const checksumFileHash = await digestData(tenc.encode(hashStr));
 
+        console.log(fileList);
+        console.log(hashStr);
+        console.log(checksumFileHash);
+
+        return {hashStr: hashStr, digest: checksumFileHash};
     }
 
-    async function hashFile(files)
+
+    function hashDirectory(files)
+    {
+        return calculateFileHashes(Array.from(files));
+    }
+
+    function hashFile(files)
     {
         if (files > 1)
         {
             window.alert("Only one file can be selected. If multiple files are to be timestamped, either do one at a time or choose a directory timestamp.");
             return;
         }
-    
-        var file = files[0];
-        var fileData = await readFile(file);
-        var digest = await digestData(fileData);
-        var hashStr = digest.string + "  " + file.name + "\n";
 
-        var tenc = new TextEncoder();
-        var checksumFileHash = await digestData(tenc.encode(hashStr));
-    
-        return {hashStr: hashStr, digest: checksumFileHash};
+        return calculateFileHashes(files);
     }
     
-    function sendText(filename, text)
+    function sendTextDownload(filename, text)
     {
-        var element = document.createElement('a');
+        let element = document.createElement('a');
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
         element.setAttribute('download', filename);
     
@@ -90,27 +105,28 @@
     
     async function timestampFileHandler()
     {
-        files = this.files;
+        const files = this.files;
         if (files.length > 1)
         {
-            var hash = await hashDirectory(this.files);
-            var choiceName = this.files[0].webkitRelativePath.split('/')[0];
+            const hash = await hashDirectory(files);
+            const choiceName = files[0].webkitRelativePath.split('/')[0];
         }
         else
         {
-            var hash = await hashFile(this.files);
-            var choiceName = this.files[0].name;
+            const hash = await hashFile(files);
+            const choiceName = files[0].name;
         }
-    
-        var response = await fetch(API_PATH + hash.digest.string);
-        var tsJSON = await response.json();
+
+        return;
+
+        const response = await fetch(API_PATH + hash.digest.string);
+        const tsJSON = await response.json();
     
         tsJSON.name = choiceName;
         tsJSON.hashfile.filename = choiceName + ".sha256";
         tsJSON.hashfile.contents = btoa(hash.hashStr);
     
-        sendText("timestamps_" + choiceName + ".json", JSON.stringify(tsJSON));
-    
+        sendTextDownload("timestamps_" + choiceName + ".json", JSON.stringify(tsJSON));
     }
   
 </script>

@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# requirements: jq, base64
+# unpack a timestamps.json file into its individual components, generally in preparation for verification
+# unpacks files into working directory
 
 set -e
 set -u
 
 FILE_TS=$(<"$1")
 
-HASH=$(jq -r '.hash.hash' < <(printf '%s' "$FILE_TS"))
+HASH_DIGEST=$(jq -r '.hash.digest' < <(printf '%s' "$FILE_TS"))
 HASH_ALG=$(jq -r '.hash.algorithm' < <(printf '%s' "$FILE_TS"))
 FILE_HASH_NAME=$(jq -r '.hashfile.filename' < <(printf '%s' "$FILE_TS"))
 FILE_HASH_DATA=$(jq -r '.hashfile.contents' < <(printf '%s' "$FILE_TS"))
 
-if [ -n $HASH ]; then
-    printf '%s' "$HASH" > $(printf '%s' "$HASH_ALG" | tr '[:upper:]' '[:lower:]').hash
+if [ -n $HASH_DIGEST ]; then
+    printf '%s' "$HASH_DIGEST" > $(printf '%s' "$HASH_ALG" | tr '[:upper:]' '[:lower:]').digest
 fi
 
 if [ -n "$FILE_HASH_NAME" ]; then

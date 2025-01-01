@@ -2,7 +2,7 @@
 
 # verifies a timestamps json file against the candiate originating file/directory
 # inputs: <path to candidate file/directory> <path to timestamp replies (.tsr)>
-# output: stdout responses from openssl verify
+# output: stdout responses from openssl verify and tsVerify.json
 
 set -u
 
@@ -10,7 +10,7 @@ PATH_ABS=$(realpath $1)
 NAME_DATA=$(basename $PATH_ABS)
 DIR_DATA=$(dirname $PATH_ABS)
 DIR_TS=$(realpath $2)
-
+DIR_ORIGIN=$(pwd)
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
@@ -28,7 +28,7 @@ cd "$DIR_DATA"
 if [ -f "$PATH_ABS" ]; then
     DIGEST_FILE=$($CMD_SHA "$NAME_DATA")
 elif [ -d "$PATH_ABS" ]; then
-    DIGEST_FILE="$(find "$NAME_DATA" -type f -printf '%h\0%d\0%p\n' | sort -t '\0' -n -f | awk -F '\0' '{print $3}' | xargs -n 1 $CMD_SHA)"
+    DIGEST_FILE="$(find "$NAME_DATA" -type f | xargs -n 1 $CMD_SHA | sort)"
 else
     printf "Error: Path was not file nor directory\n"
     exit 1
@@ -36,32 +36,72 @@ fi
 
 DIGEST_DATA=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
 
-for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
+# get TSA server name list from .tsr reply files
+TSAs=()
+for f in $DIR_TS/*.tsr; do
+    fbase=$(basename $f)
+    TSAs+=(${fbase:8:-4})
+done
 
-  printf 'Verifying %s:\n' "${TSA_names[$TSA_idx]}"
+V_STATUS=()
+V_ERR=()
+for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
 
-  # make tmp directory for this tsr
-  DIR_TMP=$(mktemp -d /tmp/tsVerify.XXXXXXX)
-  cd $DIR_TMP
+    # extract some useful data from first timestamp reply
+    if [ $TSA_idx = "0" ]; then
+        TS_R=$(openssl ts -reply -text -in $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr \
+            2> >(grep -v "Using configuration from" >&2) )
+        TS_HASH_ALG=$(printf "%s" "$TS_R" | grep "Hash Algorithm" | cut -c 17- | tr -d " \n" | tr "[:lower:]" "[:upper:]")
+        TS_HASH_DIGEST=$(printf "%s" "$TS_R" | grep "Message data" -A 2 | tail -2 | cut -c 12-58 | tr -d " \-\n")
+        TS_EPOCH=$(date -d "$(printf "%s" "$TS_R" | grep "Time stamp" | cut -c 12-)" +%s)
+    fi
 
-  # extract certificates from timestamp
-  $DIR_BIN/ttsRepCert $DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr
-  # split cert chain pem into individual certificates
-  csplit -s -f tsReply_${TSA_names[$TSA_idx]} -b %02d.pem tsReply_${TSA_names[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
-  # delete empty file
-  find $DIR_TMP -size 0 -delete
-  # delete cert chain pem
-  rm tsReply_${TSA_names[$TSA_idx]}.pem
+    printf 'Verifying %s: ' "${TSAs[$TSA_idx]}"
 
-  # generate cert IDs
-  openssl rehash ./
-  # copy over root CAs, overwriting links to any extracted CA root with these root certs
-  cp -a $DIR_CA/* $DIR_TMP
+    # make tmp directory for this tsr
+    DIR_TMP=$(mktemp -d /tmp/tsVerify.XXXXXXX)
+    cd $DIR_TMP
 
-  openssl ts -verify -digest $DIGEST_DATA \
-      -in $DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr \
-      -CApath $DIR_TMP 2> >(grep -v "Using configuration from" >&2)
+    # extract certificates from timestamp
+    $DIR_BIN/ttsRepCert $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr
+    # split cert chain pem into individual certificates
+    csplit -s -f tsReply_${TSAs[$TSA_idx]} -b %02d.pem tsReply_${TSAs[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
+    # delete empty file
+    find $DIR_TMP -size 0 -delete
+    # delete cert chain pem
+    rm tsReply_${TSAs[$TSA_idx]}.pem
 
-  rm -rf $DIR_TMP
+    # generate cert IDs
+    openssl rehash ./
+    # copy over root CAs, overwriting links to any extracted CA root with these root certs
+    cp -a $DIR_CA/* $DIR_TMP
+
+    VERIFICATION_STR=$(openssl ts -verify -digest $DIGEST_DATA \
+        -in $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr \
+        -CApath $DIR_TMP 2> >(grep -v "Using configuration from" > $DIR_TMP/err.log))
+    VERIFICATION=($VERIFICATION_STR)
+    V_STATUS+=(${VERIFICATION[1]})
+    V_ERR+=("$(<$DIR_TMP/err.log)")
+
+    printf "%s \n" ${VERIFICATION[1]}
+    if [ "${VERIFICATION[1]}" = "FAILED" ]; then
+        printf "ERROR: %s\n" "$(<$DIR_TMP/err.log)"
+    fi
+
+    rm -rf $DIR_TMP
 
 done
+
+# generate verification json
+VJ=$(jq -n --arg epoch "$TS_EPOCH" --arg alg "$TS_HASH_ALG" --arg digest "$TS_HASH_DIGEST" '{"time" : $epoch, "hash" : {"digest" : $digest, "algorithm" : $alg} }')
+VJ=$(jq '.verification = []' < <(printf "%s" "$VJ"))
+for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
+
+    VJ=$(jq --arg tsa "${TSAs[$TSA_idx]}" --arg status "${V_STATUS[$TSA_idx]}" '.verification += [{"tsa" : $tsa, "status" : $status}]' < <(printf "%s" "$VJ"))
+    if [ "${V_STATUS[$TSA_idx]}" = "FAILED" ]; then
+        VJ=$(jq --argjson idx "$TSA_idx" --arg error "${V_ERR[$TSA_idx]}" '.verification[$idx].error = $error' < <(printf "%s" "$VJ"))
+    fi
+
+done
+
+printf "%s" "$VJ" > $DIR_ORIGIN/tsVerify.json

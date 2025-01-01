@@ -20,14 +20,14 @@ PATH=$PATH:../trustedtimestamping/usr/local/bin
 
 # clearing any prior files
 rm -f *.sha*
-rm -f *.hash
+rm -f *.digest
 rm -f tsRe*.ts*
 rm -f tsCRL*.crl
 rm -f timestamps*.json
 
 echo "Hashing data file and generating timestamp request..."
 ttsGenReq $PATH_DATA
-printf "Timestamp request generated.\n\n"
+printf "Timestamp request generated\n\n"
 
 echo "Sending timestamp request to timestamp authority servers and receiving reply..."
 ttsStamp tsRequest_$PATH_DATA_NAME.tsq
@@ -35,7 +35,7 @@ printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
 ttsVerify $PATH_DATA ./
-printf "Verification complete, timestamps verified if all output reads: \"Verification: OK\"\n\n"
+printf "Verification complete\n\n"
 
 echo "Building timestamps JSON..."
 ttsPackJSON ./
@@ -43,7 +43,7 @@ printf "Timestamps JSON built\n\n"
 
 echo "Deleting checksum and all timestamp reply and CRL files..."
 rm *.sha*
-rm *.hash
+rm *.digest
 rm tsReply*.tsr
 rm tsCRL*.crl
 printf "Deleted\n\n"
@@ -51,3 +51,7 @@ printf "Deleted\n\n"
 echo "Unpacking JSON to restore checksum and all timestamp reply files..."
 ttsUnpackJSON timestamps_$PATH_DATA_NAME.json
 printf "Unpacked\n\n"
+
+echo "Verifying unpacked files..."
+ttsVerify $PATH_DATA ./
+printf "Verification complete\n"
