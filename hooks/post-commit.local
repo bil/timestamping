@@ -34,7 +34,7 @@ fi
 cd $DIR_TMP
 
 printf '%s' "$COMMIT_ID" > $OBJFORMAT.git
-printf '%s' "$DIGEST" > sha$DIGEST_SIZE.hash
+printf '%s' "$DIGEST" > sha$DIGEST_SIZE.digest
 
 openssl ts -query -digest $DIGEST -sha$DIGEST_SIZE -cert \
     -out repo.tsq 2> >(grep -v "Using configuration from" >&2)

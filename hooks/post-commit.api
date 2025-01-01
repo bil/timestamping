@@ -37,7 +37,7 @@ fi
 cd $DIR_TMP
 
 printf '%s' "$COMMIT_ID" > $OBJFORMAT.git
-printf '%s' "$DIGEST" > sha$DIGEST_SIZE.hash
+printf '%s' "$DIGEST" > sha$DIGEST_SIZE.digest
 
 curl -sS -G -d "h=$DIGEST" https://$API_URL/$API_PATH > timestamps.json
 
