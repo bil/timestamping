@@ -1,16 +1,19 @@
 #!/bin/bash
 
 # verifies a timestamps json file against the candiate originating file/directory
-# inputs: <path to candidate file/directory> <path to timestamp replies (.tsr)>
 # output: stdout responses from openssl verify and tsVerify.json
+#
+# different input forms, all second arguments are optional, assumes pwd if omotted
+# verify a file: ttsVerify <path to candidate file/directory> [path to timestamp replies (.tsr)]
+# verify a digest: ttsVerify <64 characters> [path to timestamp replies (.tsr)]
+# verify a git repo: ttsVerify git [path to git repo]
 
 set -u
 
-PATH_ABS=$(realpath $1)
-NAME_DATA=$(basename $PATH_ABS)
-DIR_DATA=$(dirname $PATH_ABS)
-DIR_TS=$(realpath $2)
-DIR_ORIGIN=$(pwd)
+if [ $# -eq 0 ]; then
+    printf "ERROR: no arguments pased.\n"
+    exit 1
+fi
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
@@ -24,17 +27,75 @@ else
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
-cd "$DIR_DATA"
-if [ -f "$PATH_ABS" ]; then
-    DIGEST_FILE=$($CMD_SHA "$NAME_DATA")
-elif [ -d "$PATH_ABS" ]; then
-    DIGEST_FILE="$(find "$NAME_DATA" -type f | xargs -n 1 $CMD_SHA | sort)"
+if [ $1 = "git" ]; then
+    VERIFY=git
+elif [ ${#1} -eq 64 ] && [[ "$1" =~ ^[0-9A-Fa-f]+$ ]]; then
+    VERIFY=digest
 else
-    printf "Error: Path was not file nor directory\n"
-    exit 1
+    VERIFY=data
 fi
 
-DIGEST_DATA=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+if [ $VERIFY = "git" ]; then
+    if [ $# -ge 2 ]; then
+        cd $2
+    fi
+    DIR_ORIGIN=$(git rev-parse --show-toplevel)
+    COMMIT_LAST=$(git log -1 --oneline --pretty=format:%s)
+    if [ "$COMMIT_LAST" != "TIMESTAMP COMMIT" ]; then
+        printf "%s\n" "ERROR: This is not a timestamp commit."
+        exit 1
+    fi
+
+    OBJFORMAT=$(git rev-parse --show-object-format)
+    COMMIT_ID=$(git log --skip 1 -1 --pretty=format:%H)
+
+    if [ "$OBJFORMAT" = "sha1" ]; then
+        DIGEST=$(printf '%s' "$COMMIT_ID" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+    elif [ "$OBJFORMAT" = "sha256" ]; then
+        DIGEST=$COMMIT_ID
+    fi
+
+    DIR_TS=$(mktemp -d /tmp/tsUnpack.XXXXXXX)
+    cd $DIR_TS
+    ttsUnpackJSON $DIR_ORIGIN/.timestamps.json
+
+fi
+
+if [ $VERIFY = "digest" ]; then
+    DIGEST=$1
+    if [ $# -ge 2 ]; then
+        DIR_TS=$(realpath $2)
+    else
+        DIR_TS=$(pwd)
+    fi
+    DIR_ORIGIN=$(pwd)
+fi
+
+if [ $VERIFY = "data" ]; then
+
+    PATH_ABS=$(realpath $1)
+    NAME_DATA=$(basename $PATH_ABS)
+    DIR_DATA=$(dirname $PATH_ABS)
+    if [ $# -ge 2 ]; then
+        DIR_TS=$(realpath $2)
+    else
+        DIR_TS=$(pwd)
+    fi
+    DIR_ORIGIN=$(pwd)
+
+    cd "$DIR_DATA"
+    if [ -f "$PATH_ABS" ]; then
+        DIGEST_FILE=$($CMD_SHA "$NAME_DATA")
+    elif [ -d "$PATH_ABS" ]; then
+        DIGEST_FILE="$(find "$NAME_DATA" -type f | xargs -n 1 $CMD_SHA | sort)"
+    else
+        printf "Error: Path was not file nor directory\n"
+        exit 1
+    fi
+
+    DIGEST=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+fi
+
 
 # get TSA server name list from .tsr reply files
 TSAs=()
@@ -76,7 +137,7 @@ for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
     # copy over root CAs, overwriting links to any extracted CA root with these root certs
     cp -a $DIR_CA/* $DIR_TMP
 
-    VERIFICATION_STR=$(openssl ts -verify -digest $DIGEST_DATA \
+    VERIFICATION_STR=$(openssl ts -verify -digest $DIGEST \
         -in $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr \
         -CApath $DIR_TMP 2> >(grep -v "Using configuration from" > $DIR_TMP/err.log))
     VERIFICATION=($VERIFICATION_STR)
@@ -105,3 +166,7 @@ for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
 done
 
 printf "%s" "$VJ" > $DIR_ORIGIN/tsVerify.json
+
+if [ $VERIFY = 'git' ]; then
+    rm -r $DIR_TS
+fi

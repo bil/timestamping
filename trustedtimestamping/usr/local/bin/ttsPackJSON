@@ -7,7 +7,11 @@
 set -e
 set -u
 
-DIR_TS=$1
+if [ $# -ge 1 ]; then
+    DIR_TS=$1
+else
+    DIR_TS=$(pwd)
+fi
 
 FORMAT="TIMESTAMPS_TRUSTED"
 VERSION=0.0.2

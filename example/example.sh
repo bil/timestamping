@@ -34,11 +34,11 @@ ttsStamp tsRequest_$PATH_DATA_NAME.tsq
 printf "Timestamp replies received\n\n"
 
 echo "Verifying timestamp replies..."
-ttsVerify $PATH_DATA ./
+ttsVerify $PATH_DATA
 printf "Verification complete\n\n"
 
 echo "Building timestamps JSON..."
-ttsPackJSON ./
+ttsPackJSON
 printf "Timestamps JSON built\n\n"
 
 echo "Deleting checksum and all timestamp reply and CRL files..."
@@ -53,5 +53,5 @@ ttsUnpackJSON timestamps_$PATH_DATA_NAME.json
 printf "Unpacked\n\n"
 
 echo "Verifying unpacked files..."
-ttsVerify $PATH_DATA ./
+ttsVerify $PATH_DATA
 printf "Verification complete\n"

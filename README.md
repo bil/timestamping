@@ -40,7 +40,7 @@ To use, copy the desired `post-commit` file to the `.git/hooks` directory of a g
 Every manual commit will be followed by an automatic timestamp commit against the checksum of the repository HEAD.
 A `.timestamps.json` file will be added to the root of the git repository.
 
-Repository timestamps can validated by running `ttsVerifyGit` against any checked out timestamp commit revision.
+Repository timestamps can validated by running `ttsVerify git` in any checked out timestamp commit revision.
 
 Revisions to this repository are timestamped in this manner as an example and to validate the temporal history of the repository.
 

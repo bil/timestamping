@@ -41,40 +41,49 @@ async def timestamp(h: str):
 
     db_hash = col_tts.document(h)
     db_hashSnap = db_hash.get()
-    if db_hashSnap.exists:
-        return {'newTimestamp' : False, 'timestamps' : db_hashSnap.to_dict()}
 
     with tempfile.TemporaryDirectory() as tmpDirName:
 
         pathTMP = pathlib.Path(tmpDirName)
-        pathTSQ = pathTMP / 'request.tsq'
-
-        # generate tsq
-        subprocess.run(['openssl', 'ts', '-query', '-digest', h, f'-sha{DIGEST_SIZE}', '-cert', '-out', pathTSQ], cwd = pathTMP, check = True)
 
         # save hash
         with open(pathTMP / f'sha{DIGEST_SIZE}.digest', 'w') as f:
             f.write(h)
 
-        # stamp
-        subprocess.run(['ttsStamp', pathTSQ], cwd = pathTMP, check = True)
+        # check if hash exists, if so verify hash and return
+        if db_hashSnap.exists:
+            ts_dict = db_hashSnap.to_dict()
 
-        # touch (used by packJSON)
-        (pathTMP / f'tts.sha{DIGEST_SIZE}').touch()
+            with open(pathTMP / 'timestamps_tts.json', 'w') as fj:
+                json.dump(ts_dict, fj)
 
-        # generage JSON
-        subprocess.run(['ttsPackJSON', pathTMP], cwd = pathTMP, check = True)
+            #return {'newTimestamp' : False, 'timestamps' : db_hashSnap.to_dict()}
 
-        with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
-            ts_dict = json.load(fj)
+        else:
+            pathTSQ = pathTMP / 'request.tsq'
 
-        ts_dict.pop('name', None)
-        ts_dict['hashfile'].pop('filename', None)
-        ts_dict['hashfile'].pop('contents', None)
-        ts_dict['hashfile'].pop('algorithm', None)
+            # generate tsq
+            subprocess.run(['openssl', 'ts', '-query', '-digest', h, f'-sha{DIGEST_SIZE}', '-cert', '-out', pathTSQ], cwd = pathTMP, check = True)
 
-        db_hash.set(ts_dict)
-        col_new.document(h).set({'exists' : True})
-        return {'newTimestamp' : True, 'timestamps' : ts_dict}
+            # stamp
+            subprocess.run(['ttsStamp', pathTSQ], cwd = pathTMP, check = True)
+
+            # touch (used by packJSON)
+            (pathTMP / f'tts.sha{DIGEST_SIZE}').touch()
+
+            # generage JSON
+            subprocess.run(['ttsPackJSON', pathTMP], cwd = pathTMP, check = True)
+
+            with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
+                ts_dict = json.load(fj)
+
+            ts_dict.pop('name', None)
+            ts_dict['hashfile'].pop('filename', None)
+            ts_dict['hashfile'].pop('contents', None)
+            ts_dict['hashfile'].pop('algorithm', None)
+
+            #db_hash.set(ts_dict)
+            #col_new.document(h).set({'exists' : True})
+            return {'newTimestamp' : True, 'timestamps' : ts_dict}
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
