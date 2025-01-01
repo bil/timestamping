@@ -106,16 +106,16 @@ done
 
 V_STATUS=()
 V_ERR=()
+TS_HASH_ALG=()
+TS_HASH_DIGEST=()
+TS_EPOCH=()
 for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
 
-    # extract some useful data from first timestamp reply
-    if [ $TSA_idx = "0" ]; then
-        TS_R=$(openssl ts -reply -text -in $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr \
-            2> >(grep -v "Using configuration from" >&2) )
-        TS_HASH_ALG=$(printf "%s" "$TS_R" | grep "Hash Algorithm" | cut -c 17- | tr -d " \n" | tr "[:lower:]" "[:upper:]")
-        TS_HASH_DIGEST=$(printf "%s" "$TS_R" | grep "Message data" -A 2 | tail -2 | cut -c 12-58 | tr -d " \-\n")
-        TS_EPOCH=$(date -d "$(printf "%s" "$TS_R" | grep "Time stamp" | cut -c 12-)" +%s)
-    fi
+    TS_R=$(openssl ts -reply -text -in $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr \
+        2> >(grep -v "Using configuration from" >&2) )
+    TS_HASH_ALG+=($(printf "%s" "$TS_R" | grep "Hash Algorithm" | cut -c 17- | tr -d " \n" | tr "[:lower:]" "[:upper:]"))
+    TS_HASH_DIGEST+=($(printf "%s" "$TS_R" | grep "Message data" -A 2 | tail -2 | cut -c 12-58 | tr -d " \-\n"))
+    TS_EPOCH+=($(date -d "$(printf "%s" "$TS_R" | grep "Time stamp" | cut -c 12-)" +%s))
 
     printf 'Verifying %s: ' "${TSAs[$TSA_idx]}"
 
@@ -154,15 +154,13 @@ for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
 done
 
 # generate verification json
-VJ=$(jq -n --arg epoch "$TS_EPOCH" --arg alg "$TS_HASH_ALG" --arg digest "$TS_HASH_DIGEST" '{"time" : $epoch, "hash" : {"digest" : $digest, "algorithm" : $alg} }')
-VJ=$(jq '.verification = []' < <(printf "%s" "$VJ"))
+VJ=$(jq -n '[]')
 for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
-
-    VJ=$(jq --arg tsa "${TSAs[$TSA_idx]}" --arg status "${V_STATUS[$TSA_idx]}" '.verification += [{"tsa" : $tsa, "status" : $status}]' < <(printf "%s" "$VJ"))
+    VJ=$(jq --arg tsa "${TSAs[$TSA_idx]}" --arg status "${V_STATUS[$TSA_idx]}" --argjson epoch "${TS_EPOCH[$TSA_idx]}" --arg alg "${TS_HASH_ALG[$TSA_idx]}" --arg digest "${TS_HASH_DIGEST[$TSA_idx]}" \
+            '. + [{"tsa" : $tsa, "status" : $status, "time" : $epoch, "hash" : {"digest" : $digest, "algorithm" : $alg}}]' < <(printf "%s" "$VJ"))
     if [ "${V_STATUS[$TSA_idx]}" = "FAILED" ]; then
-        VJ=$(jq --argjson idx "$TSA_idx" --arg error "${V_ERR[$TSA_idx]}" '.verification[$idx].error = $error' < <(printf "%s" "$VJ"))
+        VJ=$(jq --argjson idx "$TSA_idx" --arg error "${V_ERR[$TSA_idx]}" '.[$idx].error = $error' < <(printf "%s" "$VJ"))
     fi
-
 done
 
 printf "%s" "$VJ" > $DIR_ORIGIN/tsVerify.json
