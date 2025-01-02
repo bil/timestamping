@@ -89,9 +89,7 @@ async def timestamp(h: str):
                 ts_dict = json.load(fj)
 
             ts_dict.pop('name', None)
-            ts_dict['hashfile'].pop('filename', None)
-            ts_dict['hashfile'].pop('contents', None)
-            ts_dict['hashfile'].pop('algorithm', None)
+            ts_dict.pop('hashfile', None)
 
             # verify timestamp
             subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
