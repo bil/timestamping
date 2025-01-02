@@ -6,7 +6,6 @@ import json
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-#from fastapi.middleware.cors import CORSMiddleware
 
 from google.cloud import firestore
 
@@ -18,13 +17,15 @@ DIGEST_SIZE=256
 
 app = FastAPI()
 
-#app.add_middleware(
-#    CORSMiddleware,
-#    allow_origins=["*"],
-#    allow_credentials=True,
-#    allow_methods=["*"],
-#    allow_headers=["*"],
-#)
+if os.getenv('DEPLOY_ENV') == 'dev':
+    from fastapi.middleware.cors import CORSMiddleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.get('/api/v0.0.2/timestamp')
 async def timestamp(h: str):
@@ -45,21 +46,31 @@ async def timestamp(h: str):
     with tempfile.TemporaryDirectory() as tmpDirName:
 
         pathTMP = pathlib.Path(tmpDirName)
+        tsfile = 'timestamps_tts.json'
 
         # save hash
         with open(pathTMP / f'sha{DIGEST_SIZE}.digest', 'w') as f:
             f.write(h)
 
-        # check if hash exists, if so verify hash and return
+        # check if hash exists
         if db_hashSnap.exists:
+            # hash exists, grab it and verify
             ts_dict = db_hashSnap.to_dict()
 
-            with open(pathTMP / 'timestamps_tts.json', 'w') as fj:
+            with open(pathTMP / tsfile, 'w') as fj:
                 json.dump(ts_dict, fj)
 
-            #return {'newTimestamp' : False, 'timestamps' : db_hashSnap.to_dict()}
+            # unpack and verify timestamp
+            subprocess.run(['ttsUnpackJSON', tsfile], cwd = pathTMP, check = True)
+            subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
+
+            with open(pathTMP / 'tsVerify.json', 'r') as fj:
+                verify = json.load(fj)
+
+            return {'newTimestamp' : False, 'verification' : verify, 'timestamps' : db_hashSnap.to_dict()}
 
         else:
+            # hash does not exist, create
             pathTSQ = pathTMP / 'request.tsq'
 
             # generate tsq
@@ -71,10 +82,10 @@ async def timestamp(h: str):
             # touch (used by packJSON)
             (pathTMP / f'tts.sha{DIGEST_SIZE}').touch()
 
-            # generage JSON
+            # generate JSON
             subprocess.run(['ttsPackJSON', pathTMP], cwd = pathTMP, check = True)
 
-            with open(pathTMP / 'timestamps_tts.json', 'r') as fj:
+            with open(pathTMP / tsfile, 'r') as fj:
                 ts_dict = json.load(fj)
 
             ts_dict.pop('name', None)
@@ -82,8 +93,14 @@ async def timestamp(h: str):
             ts_dict['hashfile'].pop('contents', None)
             ts_dict['hashfile'].pop('algorithm', None)
 
-            #db_hash.set(ts_dict)
-            #col_new.document(h).set({'exists' : True})
-            return {'newTimestamp' : True, 'timestamps' : ts_dict}
+            # verify timestamp
+            subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
+
+            with open(pathTMP / 'tsVerify.json', 'r') as fj:
+                verify = json.load(fj)
+
+            db_hash.set(ts_dict)
+            col_new.document(h).set({'exists' : True})
+            return {'newTimestamp' : True, 'verification' : verify, 'timestamps' : ts_dict}
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -1,13 +1,25 @@
 <html>
 <head>
 
+<title>Trusted Timestamping</title>
+<meta name="description" content="RFC 3161 compliant timestamp gateway">
+<meta name="author" content="Brain Interfacing Laboratory">
+<meta charset="UTF-8">
+
+<!-- external libraries -->
+<!-- jquery -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- bootstrap -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js" integrity="sha512-ykZ1QQr0Jy/4ZkvKuqWn4iF3lqPZyij9iRv6sGqLRdTPkY69YX6+7wvVGmsdBbiIfN/8OdsI7HABjvEok6ZopQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- font awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+<!-- local scripts -->
 <script>
 
-    const API_PATH = "/api/v0.0.2/timestamp?h=";
-
-    // JavaScript
+    const API_URL = "/";
+    const API_PATH = "api/v0.0.2/timestamp?h=";
 
     async function digestData(data)
     {
@@ -65,10 +77,6 @@
         const tenc = new TextEncoder();
         const checksumFileHash = await digestData(tenc.encode(hashStr));
 
-        console.log(fileList);
-        console.log(hashStr);
-        console.log(checksumFileHash);
-
         return {hashStr: hashStr, digest: checksumFileHash};
     }
 
@@ -89,8 +97,12 @@
         return calculateFileHashes(files);
     }
     
-    function sendTextDownload(filename, text)
+    function sendTextDownload(ev)
     {
+
+        let filename = "timestamps_" + ev.data.choiceName + ".json";
+        let text = JSON.stringify(ev.data.timestamps);
+
         let element = document.createElement('a');
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
         element.setAttribute('download', filename);
@@ -102,31 +114,92 @@
     
         document.body.removeChild(element);
     }
+
+    function displayTSModal(repAPI, choiceName)
+    {
+        // new vs existing
+        let title = $("#tsDispModalTitle");
+        if (repAPI.newTimestamp)
+            title.text("New Timestamp Created");
+        else if (!repAPI.newTimestamp)
+            title.text("Previous Timestamp Found");
+
+        // get mean timestamp time
+        let tsTime = new Date(repAPI.verification
+            .map(v => v.time)
+            .reduce((avg, time) => avg + time/repAPI.verification.length, 0) * 1000
+        );
+
+        $("#tsDispModalBody").empty();
+
+        let digest = repAPI.verification[0].hash.digest;
+
+        // details card
+        $("<div></div>").addClass("card my-3").attr("id", "tsCardDetails").appendTo("#tsDispModalBody");
+        $("<h4></h4>").addClass("card-header").text("Timestamped: " + tsTime.toLocaleString()).appendTo("#tsCardDetails");
+
+        // download button/icon
+        let icon_dl = '<i class="fa-solid fa-download"></i>'
+        $("<button></button>").addClass("btn btn-lg bg-cardinal").attr('id', 'tsDownloadBtn')
+            .text('Download Timestamp')
+            .on("click", {"timestamps" : repAPI.timestamps, "choiceName" : choiceName}, sendTextDownload)
+            .appendTo("#tsCardDetails");
+        $('#tsDownloadBtn').prepend(icon_dl);
+
+        $("<p></p>").addClass("card-text mt-2").text(repAPI.verification[0].hash.algorithm + " Digest: " + digest.slice(0,8) + "..." + digest.slice(-8)).appendTo("#tsCardDetails");
+
+        // verification card
+        $("<div></div>").addClass("card my-3").attr("id", "tsCardVerify").appendTo("#tsDispModalBody");
+        $("<h5></h5>").addClass("card-header").text("Timestamp Verification").appendTo("#tsCardVerify");
+        $("<div></div>").addClass("row mt-3").attr("id", "tsBadges").appendTo("#tsCardVerify");
+
+        // declare badge icons
+        let checkGreen = '<i class="fa-solid fa-circle-check" style="color: #009600;"></i>';
+        let xRed = '<i class="fa-solid fa-circle-xmark" style="color: #b40000;"></i>';
+
+        // populate TSA server status
+        for (let i = 0; i < repAPI.verification.length; i++)
+        {
+            let vstat = $('<div></div>').addClass("card-text col");
+
+            if (repAPI.verification[i].status == "OK")
+                vstat.append(checkGreen);
+            else
+                vstat.append(xRed);
+
+            vstat.append($("<p></p>").text(repAPI.verification[i].tsa));
+            vstat.appendTo("#tsBadges");
+        }
+
+        // show modal
+        $("#tsDispModal").modal("show");
+    }
+        
     
     async function timestampFileHandler()
     {
         const files = this.files;
         if (files.length > 1)
         {
-            const hash = await hashDirectory(files);
-            const choiceName = files[0].webkitRelativePath.split('/')[0];
+            var hash = await hashDirectory(files);
+            var choiceName = files[0].webkitRelativePath.split('/')[0];
         }
         else
         {
-            const hash = await hashFile(files);
-            const choiceName = files[0].name;
+            var hash = await hashFile(files);
+            var choiceName = files[0].name;
         }
 
-        return;
+        const response = await fetch(API_URL + API_PATH + hash.digest.string);
+        let repAPI = await response.json();
+    
+        repAPI.timestamps.name = choiceName;
+        repAPI.timestamps.hashfile.filename = choiceName + ".sha256";
+        repAPI.timestamps.hashfile.contents = btoa(hash.hashStr);
 
-        const response = await fetch(API_PATH + hash.digest.string);
-        const tsJSON = await response.json();
+        displayTSModal(repAPI, choiceName);
     
-        tsJSON.name = choiceName;
-        tsJSON.hashfile.filename = choiceName + ".sha256";
-        tsJSON.hashfile.contents = btoa(hash.hashStr);
-    
-        sendTextDownload("timestamps_" + choiceName + ".json", JSON.stringify(tsJSON));
+        //sendTextDownload("timestamps_" + choiceName + ".json", JSON.stringify(repAPI.timestamps));
     }
   
 </script>
@@ -138,11 +211,15 @@
     {
         display: none;
     }
-    
-    .colorful-button
+
+    .bg-cardinal
     {
-        color: white;
         background-color: #8C1515;
+        color: white;
+    }
+    
+    .ts-button
+    {
         margin: 1rem;
         padding: 1rem;
         border-radius: 1rem;
@@ -161,24 +238,44 @@
 
 <body>
 
-    <div align="center">
+    <div class="container mt-3" align="center">
 
         <h1>Trusted Timestamping</h1>
 
         <br><br>
 
-        <label for="pickFile" class="colorful-button"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-file"></i> Timestamp File</label>
+        <label for="pickFile" class="ts-button bg-cardinal" id="pickFileLabel"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-file"></i> Timestamp File</label>
         <input id="pickFile" type="file" />
 
-        <label for="pickDir" class="colorful-button"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
+        <label for="pickDir" class="ts-button bg-cardinal" id="pickDirLabel"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
         <input id="pickDir" type="file" webkitdirectory />
 
         <br><br><br><br>
 
         <p>For more details and source code, see <a href="http://github.com/bil/timestamping">github.com/bil/timestamping</a></p>
 
+
+    <!-- timestamp display modal -->
+    <div class="modal" id="tsDispModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h3 class="modal-title" id="tsDispModalTitle"></h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body" id="tsDispModalBody"></div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+
+            </div>
+        </div>
     </div>
 
+    </div>
 
 </body>
 
