@@ -18,6 +18,8 @@
 <!-- local scripts -->
 <script>
 
+    var buttonsEnabled = true;
+
     const API_URL = "/";
     const API_PATH = "api/v0.0.2/timestamp?h=";
 
@@ -178,6 +180,11 @@
     
     async function timestampFileHandler()
     {
+        if (!buttonsEnabled)
+            return;
+        else
+            buttonsEnabled = false;
+
         const files = this.files;
         if (files.length > 1)
         {
@@ -194,18 +201,60 @@
         let repAPI = await response.json();
     
         repAPI.timestamps.name = choiceName;
+        repAPI.timestamps.hashfile = {};
         repAPI.timestamps.hashfile.filename = choiceName + ".sha256";
         repAPI.timestamps.hashfile.contents = btoa(hash.hashStr);
 
         displayTSModal(repAPI, choiceName);
-    
-        //sendTextDownload("timestamps_" + choiceName + ".json", JSON.stringify(repAPI.timestamps));
+
+        buttonsEnabled = true;
+    }
+
+    async function digestHandler()
+    {
+        if (!buttonsEnabled)
+            return;
+        else
+            buttonsEnabled = false;
+
+        let digest = $("#inputDigest").val();
+
+        if (digest.length != 64 || !/^[a-f0-9]+$/i.test(digest))
+        {
+            buttonsEnabled = true;
+            return;
+        }
+
+        const response = await fetch(API_URL + API_PATH + digest);
+        let repAPI = await response.json();
+
+        displayTSModal(repAPI, 'digest');
+
+        buttonsEnabled = true;
     }
   
 </script>
 
 <style>
     /* CSS */
+
+    .root-container
+    {
+        display: grid;
+        grid-template-columns: 1fr 2fr 2fr 2fr 1fr;
+        grid-template-rows: 1fr 2.5fr 2fr 0.5fr;
+        gap: 5% 0px;
+        grid-auto-flow: row;
+        grid-template-areas:
+            ". root-header root-header root-header ."
+            ". root-content root-content root-content ."
+            ". root-content root-content root-content ."
+            ". root-footer root-footer root-footer .";
+    }
+
+    .root-header { grid-area: root-header; }
+    .root-content { grid-area: root-content; }
+    .root-footer { grid-area: root-footer; }
 
     input[type="file"]
     {
@@ -227,32 +276,45 @@
         font-size: 1.25em;
     }
     
-    h1
-    {
-        font-size: 3em;
-    }
-
 </style>
 
 </head>
 
 <body>
 
-    <div class="container mt-3" align="center">
+    <div class="root-container" align="center">
 
-        <h1>Trusted Timestamping</h1>
+        <div class="root-header">
+            <h1>Trusted Timestamping</h1>
+        </div>
 
-        <br><br>
+        <div class="root-content">
 
-        <label for="pickFile" class="ts-button bg-cardinal" id="pickFileLabel"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-file"></i> Timestamp File</label>
-        <input id="pickFile" type="file" />
+            <label for="pickFile" class="ts-button bg-cardinal" id="pickFileLabel">
+                <i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i>
+                <i class="fa-solid fa-2xl fa-file"></i> Timestamp File</label>
+            <input id="pickFile" type="file" />
 
-        <label for="pickDir" class="ts-button bg-cardinal" id="pickDirLabel"><i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i> <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
-        <input id="pickDir" type="file" webkitdirectory />
+            <label for="pickDir" class="ts-button bg-cardinal" id="pickDirLabel">
+                <i class="fa-solid fa-2xl fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i>
+                <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
+            <input id="pickDir" type="file" webkitdirectory />
 
-        <br><br><br><br>
+            <div class="row">
+                <div class="col-9">
+                    <input class="form-control" id="inputDigest" placeholder="Enter SHA256 checksum">
+                </div>
+                <button type="button" class="btn bg-cardinal col-3" id="btnInputDigest">
+                    <i class="fa-solid fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i>
+                    <i class="fa-solid fa-hashtag"></i> Timestamp Hash</button>
+            </div>
 
-        <p>For more details and source code, see <a href="http://github.com/bil/timestamping">github.com/bil/timestamping</a></p>
+        </div>
+
+        <div class="root-footer">
+            <p>For more details and source code, see <a href="http://github.com/bil/timestamping">github.com/bil/timestamping</a></p>
+        </div>
+
 
 
     <!-- timestamp display modal -->
@@ -281,11 +343,9 @@
 
 <script>
 
-    const pickFile = document.getElementById("pickFile");
-    const pickDir  = document.getElementById("pickDir");
-
-    pickFile.addEventListener("change", timestampFileHandler, false);
-    pickDir.addEventListener( "change", timestampFileHandler, false);
+    $("#pickFile").on("change", timestampFileHandler);
+    $("#pickDir").on( "change", timestampFileHandler);
+    $("#btnInputDigest").on("click", digestHandler);
 
 </script>
 
