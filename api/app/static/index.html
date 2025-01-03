@@ -220,7 +220,17 @@
         const text = $("#inputText").val();
         const encoder = new TextEncoder();
         const textData = encoder.encode(text);
-        const fileDigest = await digestData(textData);
+        const textDigest = await digestData(textData);
+
+        const response = await fetch(API_URL + API_PATH + textDigest.string);
+        let repAPI = await response.json();
+
+        let choiceName = 'text';
+        repAPI.timestamps.hashfile = {};
+        repAPI.timestamps.hashfile.filename = choiceName + ".txt";
+        repAPI.timestamps.hashfile.contents = btoa(text);
+
+        displayTSModal(repAPI, choiceName);
 
         buttonsEnabled = true;
     }
