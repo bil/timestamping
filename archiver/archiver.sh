@@ -17,7 +17,7 @@ git rm *.json
 
 python3 $DIR_LOCAL_BIN/archiver.py pullnew $DIR_REPO
 
-if [[ -n $(find $DIR_REPO -type f -name *.json ! -name .timestamps.json -print -quit) ]]; then
+if [[ -n $(find $DIR_REPO -type f -name '*.json' ! -name .timestamps.json -print -quit) ]]; then
 
     git config user.name "Timestamp Bot"
     git config user.email timestamp.bot
