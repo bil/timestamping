@@ -137,7 +137,7 @@
         let digest = repAPI.verification[0].hash.digest;
 
         // details card
-        $("<div></div>").addClass("card my-3").attr("id", "tsCardDetails").appendTo("#tsDispModalBody");
+        $("<div></div>").addClass("card my-3").attr("id", "tsCardDetails").attr("align", "center").appendTo("#tsDispModalBody");
         $("<h4></h4>").addClass("card-header").text("Timestamped: " + tsTime.toLocaleString()).appendTo("#tsCardDetails");
 
         // download button/icon
@@ -151,7 +151,7 @@
         $("<p></p>").addClass("card-text mt-2").text(repAPI.verification[0].hash.algorithm + " Digest: " + digest.slice(0,8) + "..." + digest.slice(-8)).appendTo("#tsCardDetails");
 
         // verification card
-        $("<div></div>").addClass("card my-3").attr("id", "tsCardVerify").appendTo("#tsDispModalBody");
+        $("<div></div>").addClass("card my-3").attr("id", "tsCardVerify").attr("align", "center").appendTo("#tsDispModalBody");
         $("<h5></h5>").addClass("card-header").text("Timestamp Verification").appendTo("#tsCardVerify");
         $("<div></div>").addClass("row mt-3").attr("id", "tsBadges").appendTo("#tsCardVerify");
 
@@ -210,6 +210,22 @@
         buttonsEnabled = true;
     }
 
+    async function textHandler()
+    {
+        if (!buttonsEnabled)
+            return;
+        else
+            buttonsEnabled = false;
+
+        const text = $("#inputText").val();
+        const encoder = new TextEncoder();
+        const textData = encoder.encode(text);
+        const fileDigest = await digestData(textData);
+
+        buttonsEnabled = true;
+    }
+
+
     async function digestHandler()
     {
         if (!buttonsEnabled)
@@ -217,7 +233,7 @@
         else
             buttonsEnabled = false;
 
-        let digest = $("#inputDigest").val();
+        const digest = $("#inputDigest").val();
 
         if (digest.length != 64 || !/^[a-f0-9]+$/i.test(digest))
         {
@@ -279,11 +295,13 @@
     .accordion-button.adl
     {
         background-color: #FFEEEE;
+        /* background-color: #F0F0F0; */
     }
 
     .accordion-button.add
     {
         background-color: #FFCCCC;
+        /* background-color: #DDDDDD; */
     }
     
 </style>
@@ -310,7 +328,16 @@
                 <i class="fa-solid fa-2xl fa-folder"></i> Timestamp Directory</label>
             <input id="pickDir" type="file" webkitdirectory />
 
-            <div class="row">
+            <div class="mt-3 row">
+                <div class="col-9">
+                    <textarea class="form-control" id="inputText" rows=3 placeholder="Enter text to be timestamped"></textarea>
+                </div>
+                <button type="button" class="btn bg-cardinal col-3" id="btnInputText">
+                    <i class="fa-solid fa-stamp fa-rotate-by" style="--fa-rotate-angle: -30deg;"></i>
+                    <i class="fa-solid fa-paragraph"></i> Timestamp Text</button>
+            </div>
+
+            <div class="mt-3 row">
                 <div class="col-9">
                     <input class="form-control" id="inputDigest" placeholder="Enter SHA256 checksum">
                 </div>
@@ -359,36 +386,40 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
-
                 <div class="accordion" id="faqAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="faqH-what">
                             <button class="accordion-button collapsed add" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-what">
-                                What is this?
+                                What is this trusted timestamping website?
                             </button>
                         </h2>
                         <div id="faqC-what" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body">
                                 <p>
                                     This is a website for generating <a href="https://en.wikipedia.org/wiki/Trusted_timestamping">trusted timestamps</a>.
-                                    Trusted timestamps are useful for establishing that a specific piece of data existed in that exact form at a given time (and has not been altered since).
-                                    Among its applications, this can be useful for scientific data integrity.
+                                    Trusted timestamps can prove a specific piece of data existed in that exact form at a given time (and has not been altered since).
+                                    Among its applications, this can be useful for scientific data integrity and transparency.
+                                </p>
+                                <p>
+                                    There are three timestamping options from this website: "Timestamp File", "Timestamp Directory" and "Timestamp Hash".
+                                    The first two timestamp a file or a directory on the local system.
+                                    The third timestamps an existing <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">hash digest</a>.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="accordion-teim">
+                    <div class="accordion-item">
                         <h2 class="accordion-header" id="faqH-how">
                             <button class="accordion-button collapsed adl" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-how">
-                                How does this work?
+                                How does this trusted timestamping website work?
                             </button>
                         </h2>
                         <div id="faqC-how" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body">
                                 <p>
-                                    The data to be timestamped is processed locally on the web browser, and a <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">hash digest</a> is calculated.
-                                    This digest, which contains no details or information about the originating data, is sent to a server in the cloud through a <a href="https://en.wikipedia.org/wiki/Web_API">Web API</a> that performs the timestamping against a number of public timestamp authority servers in compliance with <a href="https://www.ietf.org/rfc/rfc3161.txt">RFC 3161</a>.
+                                    The data to be timestamped is processed locally by the web browser, and a <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">hash digest</a> is calculated.
+                                    This digest, which contains no details or information about the originating data, is sent to a server through a <a href="https://en.wikipedia.org/wiki/Web_API">Web API</a> that timestamps the digest against <a href="https://github.com/bil/timestamping/blob/main/trustedtimestamping/etc/trustedts/TSA.source">several</a> public timestamp authority servers in compliance with <a href="https://datatracker.ietf.org/doc/html/rfc3161">RFC 3161</a> using the <a href="https://en.wikipedia.org/wiki/OpenSSL"</a>OpenSSL</a> library and its <a href="https://docs.openssl.org/master/man1/openssl-ts">timestamping</a> commands.
                                 </p>
                                 <p>
                                     The timestamp generated by the server is then:
@@ -402,12 +433,10 @@
                         </div>
                     </div>
 
-
-
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="faqH-why">
                             <button class="accordion-button collapsed add" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-why">
-                                Why would anyone use this?
+                                Why would anyone use trusted timestamping?
                             </button>
                         </h2>
                         <div id="faqC-why" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
@@ -419,7 +448,7 @@
                                 </p>
                                 <p>
                                     A researcher may want to prove that a given piece of data has not changed since it was collected.
-                                    This could be useful to assert data integrity during publication, even if years later.
+                                    This could be useful to prove data integrity during publication, even years later.
                                     It can also be used to prove conception/invention dates of new scientific ideas/methods/tools/etc.
                                 </p>
                             </div>
@@ -435,33 +464,120 @@
                         <div id="faqC-share" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body">
                                 <p>
-                                    There are no data privacy conerns with timestamping or this service.
+                                    There are minimal limited data privacy concerns with this trusted timestamping website.
                                     Data never leaves your local computer.
-                                    The <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">hash digest</a> is calculated in the browser window via the JavaScript <a href="https://developer.mozilla.org/en-US/docs/Web/API/Crypto">Crypto</a> library using <a href="https://en.wikipedia.org/wiki/SHA-2">SHA-256</a>.
+                                    The <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">hash digest</a> is calculated locally by the web browser via the JavaScript <a href="https://developer.mozilla.org/en-US/docs/Web/API/Crypto">Crypto</a> library using <a href="https://en.wikipedia.org/wiki/SHA-2">SHA-256</a>.
                                     SHA-256 is a one-way operation that yields a unique number (one of 2^256 possibilities) generated by the original input data.
-                                    Importantly, the algorithm cannot be run in reverse to generate the original data, and it is <a href="https://en.wikipedia.org/wiki/Collision_resistance">effectively impossible</a> to find different piece of data that <a href="https://en.wikipedia.org/wiki/Hash_collision">yields the same digest</a>.
+                                    This algorithm cannot be run in reverse to generate the original data, and it is <a href="https://en.wikipedia.org/wiki/Collision_resistance">effectively impossible</a> to find a different piece of data that <a href="https://en.wikipedia.org/wiki/Hash_collision">yields the same digest</a>.
                                 </p>
                                 <p>
-                                    For these reasons, there is no data privacy risk in sharing the digest, or even making it public (as this service does).
+                                For these reasons, there is no data privacy risk in sharing the digest, or even making it public (as this service does, at the <a href="http://github.com/bil/timestamp-record">timestamp record</a> repository).
                                     The digest is the <i>only</i> item sent to the server, and there is no additional information actively gathered.
                                     The digest does not identify the data or the user in any way, unless the data owner voluntarily reveals the data themselves.
                                 </p>
-
                                 <p>
-                                    IP addresses and connection times are captured as part of default cloud logging services--a VPN can mask the originating IP if desired.
+                                    The only potential privacy concern is the possible loss of confidentiality of the owner of the digest.
+                                    Since this website is a <a href="https://en.wikipedia.org/wiki/Web_service">web service</a>, <a href="https://en.wikipedia.org/wiki/Client%E2%80%93server_model">client</a> connection information, such as <a href="https://en.wikipedia.org/wiki/IP_address">IP address</a> and time of connection are automatically <a href="https://en.wikipedia.org/wiki/Logging_(computing)">logged</a>.
+                                    This website runs as a <a href="https://en.wikipedia.org/wiki/Cloud_computing">cloud service</a> on <a href="https://cloud.google.com">Google Cloud Platform</a> in the United States and logs all client connection information for 400 days as part of the <a href="https://cloud.google.com/logging/docs/routing/overview#required-bucket">required</a> logging policy.
+                                    This should not be a concern for most scientific applications.
+                                    A <a href="https://en.wikipedia.org/wiki/VPN_service">VPN service</a> can mask the client computer's IP if greater anonymity from these logging policies is desired.
                                 </p>
 
                                 <p>
                                     There is no obligation to use this web service to generate timestamps.
                                     Timestamps can be generated locally without the web service using the openssl wrapper scripts available at <a href="https://github.com/bil/timestamping">github.com/bil/timestamping</a>.
-                                    The scripts at this repository are used by this web service to generate its timestamps.
-                                    One additional benefit of using the web service is that it acts as an <i>Evidence Recording Authority</i> which can provide long-term guarantees of otherwise limited lifetime timestamps (explained further in a different question).
+                                    The scripts in this repository are used by this web service to generate its timestamps.
+                                </p>
+                                <p>
+                                    One additional benefit of using the web service is that it acts as an <i>Evidence Recording Authority</i> which can provide long-term validation of otherwise limited lifetime timestamps (explained further in the FAQ on expiration).
                                 </p>
                                     
                             </div>
                         </div>
                     </div>
 
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqH-free">
+                            <button class="accordion-button collapsed add" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-free">
+                                Is this timestamping service free?
+                            </button>
+                        </h2>
+                        <div id="faqC-free" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>
+                                    The software for this web service and timestamping framework is released under an <a href="https://en.wikipedia.org/wiki/Open_source">open source</a> license, specifically the <a href="https://www.gnu.org/licenses/agpl-3.0.en.html">AGPL v3</a>.
+                                    All code is available at the <a href="http://github.com/bil/timestamping">timestamping</a> repository.
+                                    This openness is both important for scientific transparency and <a href="http://pubmed.gov/27387362">furthers</a> scientific progress.
+                                <p>
+                                    There is no cost to using this web service.
+                                    It is provided free of charge to the scientific community.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqH-longterm">
+                            <button class="accordion-button collapsed adl" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-longterm">
+                                Do trusted timestamps expire?
+                            </button>
+                        </h2>
+                        <div id="faqC-longterm" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>
+                                    These timestamps are generated by an <a href="https://datatracker.ietf.org/doc/html/rfc3161">open standard</a> and use <a href="https://en.wikipedia.org/wiki/Public_key_infrastructure">public key infrastructure</a> based on <a href="https://en.wikipedia.org/wiki/X.509">X.509</a> certificates (the same as <a href="https://en.wikipedia.org/wiki/HTTPS">HTTPS</a> used for encrypted web browsing).
+                                    While these timestamps are relatively long-lived, they are not valid forever, and will expire when one of the <a href="https://en.wikipedia.org/wiki/Public_key_certificate">certificates</a> associated with the timestamp expires or is <a href="https://en.wikipedia.org/wiki/Certificate_revocation">revoked</a>.
+                                    In either scenario, the timestamp, on its own, is no longer valid.
+                                </p>
+                                <p>
+                                    This timestamping web service takes measures to ensure that timestamps remain valid even after the associated certificates have expired or were revoked.
+                                    This web service publishes all new timestamps daily on a publicly-visible <a href="http://github.com/bil/timestamp-record">record repository</a>, which is based on <a href="https://en.wikipedia.org/wiki/Git">git</a>.
+                                    Git uses a <a href="https://en.wikipedia.org/wiki/Merkle_tree">Merkle tree</a> to store and update all changes to the repository.
+                                    Each version of the repository is hashed and has a unique <a href="https://en.wikipedia.org/wiki/SHA-1">SHA-1</a> digest.
+                                    This digest is timestamped using this framework and added the record repository, appearing as a separate commit (see <a href="https://github.com/bil/timestamp-record/commit/9c8bfa16d2228cda3e227f3a2b855141d91719a2">example timestamp commit</a>), similar to a prior git-focused <a href="https://github.com/MrMabulous/GitTrustedTimestamps">trusted timestamping framework</a>.
+                                    So long as the repository digest is regularly timestamped, this approach provides <i>long-term validation</i> of prior timestamps even after their respective certificates expire.
+                                    In this manner, the web service and timestamp record act as an Evidence Recording Authority by notarizing all new (and prior) timestamps daily, as recommended by <a href="https://datatracker.ietf.org/doc/html/rfc3161#autoid-14">RFC 3161 Section 4.3</a>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqH-trust">
+                            <button class="accordion-button collapsed add" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-trust">
+                                Why should I trust this timestamping service?
+                            </button>
+                        </h2>
+                        <div id="faqC-trust" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>
+                                    While there is no specific requirement to trust this timestamping web service to generate trusted timestamps, all attempts at transparency are made.
+                                    All code, from the timestamping <a href="https://en.wikipedia.org/wiki/OpenSSL">OpenSSL</a> wrapper scripts to the web services (front and back ends) are released as <a href="https://en.wikipedia.org/wiki/Open_source">open source</a> software available at <a href="http://github.com/bil/timestamping">github.com/bil/timestamping</a>.
+                                    Timestamps can be generated locally and stored privately.
+                                    Long-term validation can be achieved by maintaining a private git repository of timestamp records.
+                                    This web service simply provides a convenience for those who do not wish to deploy their own services.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqH-who">
+                            <button class="accordion-button collapsed adl" type="button" data-bs-toggle="collapse" data-bs-target="#faqC-who">
+                                Who are you and why did you make this trusted timestamping web service?
+                            </button>
+                        </h2>
+                        <div id="faqC-who" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                <p>
+                                    This service was made by Prof. Paul Nuyujukian, PhD MD of Stanford University who directs the <a href="http://bil.stanford.edu">Brain Interfacing Laboratory</a>.
+                                    This service was developed because of the identified need to timestamp scientific data and the scientific record, but there did not exist an easy way to do so.
+                                    While public RFC3161 timestamp servers have been around for years, the tools for generating timestamps, particularly ones with long-term validation, were not accessible.
+                                    This web service addresses this unmet need.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
 
 
@@ -479,12 +595,12 @@
 
     $("#pickFile").on("change", timestampFileHandler);
     $("#pickDir").on( "change", timestampFileHandler);
+    $("#btnInputText").on("click", textHandler);
     $("#btnInputDigest").on("click", digestHandler);
     $("#btnFAQ").on("click", function () { $('#faqModal').modal('show') });
 
 
-    // expand all:
-    // $('#faqModal').modal('show')
+    // expand all: $('#faqAccordion .collapse').collapse('show');
 
 </script>
 
