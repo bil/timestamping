@@ -207,6 +207,9 @@
 
         displayTSModal(repAPI, choiceName);
 
+        // clear file choices
+        $("#pickFile")[0].value = "";
+        $("#pickDir" )[0].value = "";
         buttonsEnabled = true;
     }
 
@@ -232,6 +235,7 @@
 
         displayTSModal(repAPI, choiceName);
 
+        $("#inputText").val("");
         buttonsEnabled = true;
     }
 
@@ -256,6 +260,7 @@
 
         displayTSModal(repAPI, 'digest');
 
+        $("#inputDigest").val("");
         buttonsEnabled = true;
     }
   
@@ -289,8 +294,14 @@
 
     .bg-cardinal
     {
-        background-color: #8C1515;
         color: white;
+        background-color: #8C1515;
+    }
+
+    .bg-cardinal:hover
+    {
+        color: black;
+        background-color: #FFE6E6;
     }
     
     .ts-button
