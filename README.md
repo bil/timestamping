@@ -47,6 +47,12 @@ Revisions to this repository are timestamped in this manner as an example and to
 This framework permits a temporally-verifiable record of a git repository, suitable for an electornic lab notebook or other authoritative archive.
 When a common repository is used by multiple individuals (and optionally coupled with [signed commits](https://git-scm.com/book/ms/v2/Git-Tools-Signing-Your-Work)), a cryptographically secure and unique record can be defended so long as at least one of the contributing individuals is truthful (up to the truthful individual's last commit, at least).
 
+## DOI Integration
+
+These timestamps are small enough that they can be embedded into DOIs for archiving.
+An example is `10.25740/jc435yd3521`.
+The timestamp associated with this DOI can be retrieved by `ttsDOI 10.25740/jc435yd3521`.
+
 ## Debian/Ubuntu Package
 
 A Debian/Ubuntu package is available in `build/deb`.
@@ -95,14 +101,26 @@ A time field was specifically omitted and must be derived from the timestamp rep
 
 ### File Timestamps
 
-File timestamps are derived by calculating the SHA256 hash of the file, generating the respective `sha256sum` compliant string, calculating the SHA256 hash of this string, and using this second hash as the digest for the timestamp request.
+File timestamps are derived by calculating the SHA256 digest of the file, generating the respective `sha256sum` compliant string, calculating the SHA256 digest of this string, and using this second digest as the value passed to the timestamp request.
 This is done to 1) make immutable both the file's contents *and* its name and 2) maintain compatibility with the coreutils package.
-The format of this string is: `<32 byte SHA256 hash in lowercase><two spaces><file name><line feed character (\n)>`.
+The format of this compliant string is: `<32 byte SHA256 hash in lowercase><two spaces, 0x20><file name><line feed character (0x0A, \n)>`.
+
+An example compliant string timestamp a single file appears as:
+```
+ca043731236ccd44998fb2e6b645a4ffb882a72318b06163a1a0b1d4c5204748  W241130.wav
+```
 
 ### Directory Timestamps
 
-Directory timestamps are generated in an identical fashion to file timestamps, except the `shas256sum` compliant string contains multiple lines, one for each file (including relative path).
-At the moment, the hash calculation is sensitive to the ordering of these lines, and is sorted by file name alphabetically, shallow to deep.
+Directory timestamps are generated in an identical fashion to file timestamps, except the `shas256sum` compliant string to be hashed contains multiple lines, one for each file (including path relative to top-level directory, and inclusive of this).
+The hash digest calculation is sensitive to the ordering of these lines.
+Thus, to simplify sorting and avoid platform-specific file listing sorting errors, these lines are sorted *by the digest* and not the file/directory name.
+
+An example compliant string timestamp for a single directory with two files appears as:
+```
+03fb09b0660f246ed683c0c91f49684c203cb2c8f76ec9277f530e45f0fdb8db  W241130/W241130.yaml
+ca043731236ccd44998fb2e6b645a4ffb882a72318b06163a1a0b1d4c5204748  W241130/W241130.wav
+```
 
 ### Git Repository Timestamps
 
