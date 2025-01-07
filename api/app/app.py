@@ -28,7 +28,7 @@ if os.getenv('DEPLOY_ENV') == 'dev':
     )
 
 @app.get('/api/v0.0.2/timestamp')
-async def timestamp(h: str):
+async def timestamp(h: str, verify: bool = False):
 
     # valdiate hash length
     if len(h) != DIGEST_SIZE/4:
@@ -54,20 +54,28 @@ async def timestamp(h: str):
 
         # check if hash exists
         if db_hashSnap.exists:
-            # hash exists, grab it and verify
+            # hash exists, grab it
             ts_dict = db_hashSnap.to_dict()
 
             with open(pathTMP / tsfile, 'w') as fj:
                 json.dump(ts_dict, fj)
 
-            # unpack and verify timestamp
-            subprocess.run(['ttsUnpackJSON', tsfile], cwd = pathTMP, check = True)
-            subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
+            if verify:
 
-            with open(pathTMP / 'tsVerify.json', 'r') as fj:
-                verify = json.load(fj)
+                # unpack and verify timestamp
+                subprocess.run(['ttsUnpackJSON', tsfile], cwd = pathTMP, check = True)
+                subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
 
-            return {'newTimestamp' : False, 'verification' : verify, 'timestamps' : db_hashSnap.to_dict()}
+                with open(pathTMP / 'tsVerify.json', 'r') as fj:
+                    verify = json.load(fj)
+
+                rDict = {'newTimestamp' : False, 'verification' : verify, 'timestamps' : db_hashSnap.to_dict()}
+
+            else:
+
+                rDict = db_hashSnap.to_dict()
+
+            return rDict
 
         else:
             # hash does not exist, create
@@ -91,14 +99,22 @@ async def timestamp(h: str):
             ts_dict.pop('name', None)
             ts_dict.pop('hashfile', None)
 
-            # verify timestamp
-            subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
+            if verify:
 
-            with open(pathTMP / 'tsVerify.json', 'r') as fj:
-                verify = json.load(fj)
+                # verify timestamp
+                subprocess.run(['ttsVerify', h], cwd = pathTMP, check = True)
+
+                with open(pathTMP / 'tsVerify.json', 'r') as fj:
+                    verify = json.load(fj)
+
+                rDict = {'newTimestamp' : True, 'verification' : verify, 'timestamps' : ts_dict}
+
+            else:
+
+                rDict = ts_dict
 
             db_hash.set(ts_dict)
             col_new.document(h).set({'exists' : True})
-            return {'newTimestamp' : True, 'verification' : verify, 'timestamps' : ts_dict}
+            return rDict
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

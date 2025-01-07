@@ -9,7 +9,7 @@ API_PATH=api/v0.0.2/timestamp
 
 # prevent infinite loop
 COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
-if [ "$COMMIT_LAST_MSG" == "TIMESTAMP COMMIT" ]; then
+if [ "$(echo $COMMIT_LAST_MSG| head -n 1)" == "TIMESTAMP COMMIT" ]; then
     exit 0
 fi
 
@@ -44,6 +44,6 @@ curl -sS -G -d "h=$DIGEST" https://$API_URL/$API_PATH > timestamps.json
 cd $DIR_ORIGIN
 cp $DIR_TMP/timestamps.json ./.timestamps.json
 git add ./.timestamps.json
-git commit -m "TIMESTAMP COMMIT"
+git commit -m "TIMESTAMP COMMIT" -m $DIGEST
 
 rm -rf $DIR_TMP
