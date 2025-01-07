@@ -5,7 +5,7 @@
 set -e
 
 API_URL=timestamp.stanford.edu
-API_PATH=api/v1/timestamp
+API_PATH=api/v0.0.2/timestamp
 
 # prevent infinite loop
 COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
