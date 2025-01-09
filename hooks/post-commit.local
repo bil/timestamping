@@ -4,9 +4,11 @@
 
 set -e
 
+TS_MSG="TRUSTED TIMESTAMP COMMIT"
+
 # prevent infinite loop
 COMMIT_LAST_MSG=$(git log -1 --oneline --pretty=format:%s)
-if [ "$COMMIT_LAST_MSG" == "TIMESTAMP COMMIT" ]; then
+if [ "$COMMIT_LAST_MSG" == "$TS_MSG" ]; then
     exit 0
 fi
 
@@ -45,6 +47,6 @@ ttsPackJSON ./
 cd $DIR_ORIGIN
 cp $DIR_TMP/timestamps.json ./.timestamps.json
 git add ./.timestamps.json
-git commit -m "TIMESTAMP COMMIT"
+git commit -m "$TS_MSG" -m $DIGEST
 
 rm -rf $DIR_TMP
