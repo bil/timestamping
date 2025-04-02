@@ -22,7 +22,7 @@ DIGEST_SIZE=256
 if [ "$(uname)" = "Darwin" ]; then
     CMD_BASE64="base64 -b 0"
 else
-    CMD_BASE64="$CMD_BASE64"
+    CMD_BASE64="base64 -w 0"
 fi
 
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
