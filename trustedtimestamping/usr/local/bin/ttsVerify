@@ -105,7 +105,7 @@ fi
 TSAs=()
 for f in $DIR_TS/*.tsr; do
     fbase=$(basename $f)
-    TSAs+=(${fbase:8:${#fbase}-12})
+    TSAs+=($(echo $fbase | cut -d'_' -f 2 | cut -d '.' -f 1))
 done
 
 V_STATUS=()
