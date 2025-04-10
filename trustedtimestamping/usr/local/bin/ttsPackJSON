@@ -18,6 +18,13 @@ VERSION=0.0.2
 
 DIGEST_SIZE=256
 
+# check for Mac
+if [ "$(uname)" = "Darwin" ]; then
+    CMD_BASE64="base64 -b 0"
+else
+    CMD_BASE64="base64 -w 0"
+fi
+
 DIR_LOCAL_BIN=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR_LOCAL_BIN/../../../etc/trustedts/tts.source
 
@@ -35,7 +42,7 @@ if compgen -G "$DIR_TS/*.sha$DIGEST_SIZE" > /dev/null; then
     FILE_HASH=$(find $DIR_TS -name "*.sha$DIGEST_SIZE" -exec basename {} .sha$DIGEST_SIZE \;)
 
     JSON=$(jq ".name = \"$FILE_HASH\"" <(printf '%s' "$JSON"))
-    JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"contents\" : \"$(base64 -w 0 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
+    JSON=$(jq ".hashfile = {\"filename\" : \"$FILE_HASH.sha$DIGEST_SIZE\", \"algorithm\" : \"SHA$DIGEST_SIZE\", \"contents\" : \"$($CMD_BASE64 < <(<$DIR_TS/$FILE_HASH.sha$DIGEST_SIZE) )\"} " <(printf '%s' "$JSON"))
 fi
 
 # check if git hash file exists
@@ -51,19 +58,19 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
 
     CRLs=()
     for crl in $DIR_TS/tsCRL_${TSA_names[$TSA_idx]}*.crl; do
-        CRLs+=($(base64 -w 0 < <(<$crl) ))
+        CRLs+=($($CMD_BASE64 < <(<$crl) ))
     done
     CRL_JSON=$(jq -n --arg array "${CRLs[*]}" '$array| split(" ")')
 
-    STR_TSREP=$(base64 -w 0 < <(<$DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr) )
-    STR_CA=$(base64 -w 0 < <(<$DIR_CA/${TSA_names[$TSA_idx]}CA.pem) )
+    STR_TSREP=$($CMD_BASE64 < <(<$DIR_TS/tsReply_${TSA_names[$TSA_idx]}.tsr) )
+    STR_CA=$($CMD_BASE64 < <(<$DIR_CA/${TSA_names[$TSA_idx]}CA.pem) )
 
     JSON=$(jq ".timestamps += [{ \"authority\" : \"${TSA_names[$TSA_idx]}\", \"url\" : \"${TSA_urls[$TSA_idx]}\", \"reply\" : \"$STR_TSREP\", \"ca\" : \"$STR_CA\", \"crls\" : $CRL_JSON }]" <(printf '%s' "$JSON"))
 done
 
-if [ -v FILE_HASH ]; then
-    FILE_SUFFIX="_$FILE_HASH"
-else
+if [ -n FILE_HASH ]; then
     FILE_SUFFIX=""
+else
+    FILE_SUFFIX="_$FILE_HASH"
 fi
 printf '%s' "$JSON" > timestamps$FILE_SUFFIX.json
