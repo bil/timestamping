@@ -22,8 +22,12 @@ DIGEST_SIZE=256
 
 # check for Mac
 if [ "$(uname)" = "Darwin" ]; then
+    CMD_CSPLIT=gcsplit
+    CMD_DATE=("date" "-jf" "%b %e %H:%M:%S %Y %Z")
     CMD_SHA="shasum -a $DIGEST_SIZE"
 else
+    CMD_CSPLIT=csplit
+    CMD_DATE=("date" "-d")
     CMD_SHA="sha${DIGEST_SIZE}sum"
 fi
 
@@ -101,7 +105,7 @@ fi
 TSAs=()
 for f in $DIR_TS/*.tsr; do
     fbase=$(basename $f)
-    TSAs+=(${fbase:8:-4})
+    TSAs+=($(echo $fbase | cut -d'_' -f 2 | cut -d '.' -f 1))
 done
 
 V_STATUS=()
@@ -115,7 +119,10 @@ for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
         2> >(grep -v "Using configuration from" >&2) )
     TS_HASH_ALG+=($(printf "%s" "$TS_R" | grep "Hash Algorithm" | cut -c 17- | tr -d " \n" | tr "[:lower:]" "[:upper:]"))
     TS_HASH_DIGEST+=($(printf "%s" "$TS_R" | grep "Message data" -A 2 | tail -2 | cut -c 12-58 | tr -d " \-\n"))
-    TS_EPOCH+=($(date -d "$(printf "%s" "$TS_R" | grep "Time stamp" | cut -c 12-)" +%s))
+    TS_TIME="$(printf "%s" "$TS_R" | grep "Time stamp" | cut -c 13-)"
+    # throw out milliseconds if present
+    TS_TIME=$(echo $TS_TIME | sed -E 's/([0-9]{2}:[0-9]{2}:[0-9]{2})\.[0-9]*/\1/g')
+    TS_EPOCH+=($("${CMD_DATE[@]}" "$TS_TIME" +%s))
 
     printf 'Verifying %s: ' "${TSAs[$TSA_idx]}"
 
@@ -126,7 +133,7 @@ for TSA_idx in $(seq 0 $((${#TSAs[@]}-1)) ); do
     # extract certificates from timestamp
     $DIR_BIN/ttsRepCert $DIR_TS/tsReply_${TSAs[$TSA_idx]}.tsr
     # split cert chain pem into individual certificates
-    csplit -s -f tsReply_${TSAs[$TSA_idx]} -b %02d.pem tsReply_${TSAs[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
+    $CMD_CSPLIT -s -f tsReply_${TSAs[$TSA_idx]} -b %02d.pem tsReply_${TSAs[$TSA_idx]}.pem /END\ CERTIFICATE/+2 {*}
     # delete empty file
     find $DIR_TMP -size 0 -delete
     # delete cert chain pem
