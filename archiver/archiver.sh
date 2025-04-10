@@ -25,7 +25,7 @@ if [[ -n $(find $DIR_REPO -type f -name '*.json' ! -name .timestamps.json -print
     cp /timestamping/hooks/post-commit.local .git/hooks/post-commit
 
     git add *.json
-    git commit -m 'added timestmaps'
+    git commit -m 'added timestamps'
     git push
 
     python3 $DIR_LOCAL_BIN/archiver.py clearnew

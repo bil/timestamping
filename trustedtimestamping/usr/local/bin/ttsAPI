@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# generate timestamps via API
+# input argument: path to file or directory to be timestamped
+# outputs a timestamps_<name>.json via the timestamp API
+
+set -e
+set -u
+
+API_URL=timestamp.stanford.edu
+API_PATH=api/v0.0.2/timestamp
+
+PATH_ABS=$(realpath $1)
+NAME_DATA=$(basename $PATH_ABS)
+DIR_DATA=$(dirname $PATH_ABS)
+DIR_ORIGIN=$(pwd)
+
+DIGEST_SIZE=256
+
+# check for Mac
+if [ "$(uname)" = "Darwin" ]; then
+    CMD_SHA="shasum -a $DIGEST_SIZE"
+else
+    CMD_SHA="sha${DIGEST_SIZE}sum"
+fi
+
+cd "$DIR_DATA"
+if [ -f "$PATH_ABS" ]; then
+    DIGEST_FILE=$($CMD_SHA "$NAME_DATA" | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE )
+elif [ -d "$PATH_ABS" ]; then
+    DIGEST_FILE="$(find "$NAME_DATA" -type f | xargs -n 1 $CMD_SHA | sort | tee "$DIR_ORIGIN"/"$NAME_DATA".sha$DIGEST_SIZE )"
+else
+    printf "Error: Path was not file nor directory\n"
+    exit 1
+fi
+
+DIGEST_DATA=$(printf "%s\n" "$DIGEST_FILE" | $CMD_SHA | cut -c 1-$(($DIGEST_SIZE/4)) )
+
+cd "$DIR_ORIGIN"
+curl -sS -G -d "h=$DIGEST_DATA" https://$API_URL/$API_PATH > timestamps_${NAME_DATA}.json
