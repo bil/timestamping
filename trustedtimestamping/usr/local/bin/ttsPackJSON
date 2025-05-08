@@ -68,9 +68,9 @@ for TSA_idx in $(seq 0 $((${#TSA_names[@]}-1)) ); do
     JSON=$(jq ".timestamps += [{ \"authority\" : \"${TSA_names[$TSA_idx]}\", \"url\" : \"${TSA_urls[$TSA_idx]}\", \"reply\" : \"$STR_TSREP\", \"ca\" : \"$STR_CA\", \"crls\" : $CRL_JSON }]" <(printf '%s' "$JSON"))
 done
 
-if [ -n $FILE_HASH ]; then
-    FILE_SUFFIX=""
-else
+if [ -n "$FILE_HASH" ]; then
     FILE_SUFFIX="_$FILE_HASH"
+else
+    FILE_SUFFIX=""
 fi
 printf '%s' "$JSON" > timestamps$FILE_SUFFIX.json
